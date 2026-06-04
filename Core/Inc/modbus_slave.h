@@ -14,6 +14,7 @@
 #define MODBUS_SLAVE_H
 
 #include "stm32g0xx_hal.h"
+#include "main.h"
 #include <stdint.h>
 
 /* ── public handles (set before calling Modbus_Init) ─────────────────────── */
@@ -21,10 +22,27 @@ extern UART_HandleTypeDef huart2;
 extern LPTIM_HandleTypeDef hlptim1;
 
 /* RS-485 direction pin — PA1 */
-#define RS485_DE_PORT   GPIOA
-#define RS485_DE_PIN    GPIO_PIN_1
+#define RS485_DE_PORT   RX_EN_GPIO_Port
+#define RS485_DE_PIN    RX_EN_Pin
 #define RS485_DE_HIGH() HAL_GPIO_WritePin(RS485_DE_PORT, RS485_DE_PIN, GPIO_PIN_SET)
 #define RS485_DE_LOW()  HAL_GPIO_WritePin(RS485_DE_PORT, RS485_DE_PIN, GPIO_PIN_RESET)
+
+/* Coil values */
+#define cu16_RELAY_OFF		((uint16_t) 0x0000u)
+#define cu16_RELAY_ON		((uint16_t) 0xFF00u)
+#define cu16_RELAY_TOGGLE	((uint16_t) 0x5500u)
+
+/* ── configuration ───────────────────────────────────────────────────────── */
+#define MB_SLAVE_ADDR       0x01u
+#define MB_RX_BUF_SIZE      256u
+#define MB_TX_BUF_SIZE      256u
+#define MB_NUM_COILS        8u      /* PB12, PB2..PB0, PA7..PA4              */
+#define MB_NUM_REGS         8u      /* holding registers, shadow coil state  */
+
+typedef struct
+{
+	uint8_t coil[MB_NUM_COILS];
+}Coil_Status_t;
 
 /* ── API ─────────────────────────────────────────────────────────────────── */
 /** HAL writes each received byte here. Arm UART with: HAL_UART_Receive_IT(&huart2, &g_lastRxByte, 1) */
