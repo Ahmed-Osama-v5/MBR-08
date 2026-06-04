@@ -18,9 +18,11 @@
 #include "modbus_slave.h"
 #include "modbus_timer.h"
 #include <string.h>
+#include <stdbool.h>
 
 /* ── Coils status ───────────────────────────────────────────────────────── */
 Coil_Status_t str_CoilStates;
+extern bool bNewData;
 
 /* ── Modbus exception codes ─────────────────────────────────────────────── */
 #define MB_EX_ILLEGAL_FUNCTION      0x01u
@@ -348,6 +350,8 @@ void Modbus_RxByteCallback(uint8_t byte)
 
 	/* Turn RX led off */
 	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_RESET);
+
+	bNewData = true;
 }
 
 /**

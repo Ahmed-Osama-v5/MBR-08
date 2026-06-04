@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include "scheduler.h"
 #include "modbus_slave.h"
 /* USER CODE END Includes */
@@ -68,7 +69,6 @@ static void MX_USART2_UART_Init(void);
 static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 
-static void Task_ModbusProcess(void);
 static void Task_RelayUpdate(void);
 static void Task_ActLED(void);
 /* USER CODE END PFP */
@@ -76,6 +76,7 @@ static void Task_ActLED(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 extern Coil_Status_t str_CoilStates;
+bool bNewData = true;
 /* USER CODE END 0 */
 
 /**
@@ -115,9 +116,8 @@ int main(void)
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
   Scheduler_Init();
-  //Modbus_Init();
+  Modbus_Init();
 
-  Scheduler_AddTask(Task_ModbusProcess,   1U,   50U);  /* every 1ms,  stuck if >50ms  */
   Scheduler_AddTask(Task_RelayUpdate,     5U,   50U);  /* every 5ms,  stuck if >50ms  */
   Scheduler_AddTask(Task_ActLED,  500U,    0U);  /* every 500ms, not wdog-guarded */
   /* USER CODE END 2 */
@@ -477,32 +477,29 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-/* Processes incoming Modbus frame (flag set by UART IRQ) */
-static void Task_ModbusProcess(void)
-{
-    //Modbus_Poll();   /* non-blocking: checks frame-ready flag, parses, responds */
-}
-
 /* Mirrors g_relay_coils bitmask to 8 GPIO relay outputs */
 static void Task_RelayUpdate(void)
 {
-#if 0
-    for (uint8_t ch = 0U; ch < 8U; ch++) {
-        GPIO_PinState state = ((g_relay_coils >> ch) & 0x01U) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+	if(bNewData)
+	{
+		for (uint8_t ch = 0U; ch < MB_NUM_COILS; ch++) {
+			GPIO_PinState state = (str_CoilStates.coil[ch] & 0x01U) ? GPIO_PIN_SET : GPIO_PIN_RESET;
 
-        switch (ch) {
-            case 0: HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, state); break;
-            case 1: HAL_GPIO_WritePin(RELAY2_GPIO_Port, RELAY2_Pin, state); break;
-            case 2: HAL_GPIO_WritePin(RELAY3_GPIO_Port, RELAY3_Pin, state); break;
-            case 3: HAL_GPIO_WritePin(RELAY4_GPIO_Port, RELAY4_Pin, state); break;
-            case 4: HAL_GPIO_WritePin(RELAY5_GPIO_Port, RELAY5_Pin, state); break;
-            case 5: HAL_GPIO_WritePin(RELAY6_GPIO_Port, RELAY6_Pin, state); break;
-            case 6: HAL_GPIO_WritePin(RELAY7_GPIO_Port, RELAY7_Pin, state); break;
-            case 7: HAL_GPIO_WritePin(RELAY8_GPIO_Port, RELAY8_Pin, state); break;
-            default: break;
-        }
-    }
-#endif
+			switch (ch) {
+				case 0: HAL_GPIO_WritePin(REL_0_GPIO_Port, REL_0_Pin, state); break;
+				case 1: HAL_GPIO_WritePin(REL_1_GPIO_Port, REL_1_Pin, state); break;
+				case 2: HAL_GPIO_WritePin(REL_2_GPIO_Port, REL_2_Pin, state); break;
+				case 3: HAL_GPIO_WritePin(REL_3_GPIO_Port, REL_3_Pin, state); break;
+				case 4: HAL_GPIO_WritePin(REL_4_GPIO_Port, REL_4_Pin, state); break;
+				case 5: HAL_GPIO_WritePin(REL_5_GPIO_Port, REL_5_Pin, state); break;
+				case 6: HAL_GPIO_WritePin(REL_6_GPIO_Port, REL_6_Pin, state); break;
+				case 7: HAL_GPIO_WritePin(REL_7_GPIO_Port, REL_7_Pin, state); break;
+				default: break;
+			}
+		}
+	}
+	bNewData = false;
+
 }
 
 static void Task_ActLED(void)
