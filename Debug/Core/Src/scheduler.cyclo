@@ -1,0 +1,8 @@
+../Core/Src/scheduler.c:20:6:Scheduler_Init	2
+../Core/Src/scheduler.c:34:6:Scheduler_AddTask	3
+../Core/Src/scheduler.c:55:6:Scheduler_IsHealthy	5
+../Core/Src/scheduler.c:76:6:Scheduler_Run	8
+../Core/Src/scheduler.c:123:25:find_task	3
+../Core/Src/scheduler.c:131:6:Scheduler_EnableTask	2
+../Core/Src/scheduler.c:141:6:Scheduler_DisableTask	2
+../Core/Src/scheduler.c:149:6:Scheduler_SetPeriod	2

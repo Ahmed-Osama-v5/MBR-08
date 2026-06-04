@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "scheduler.h"
 //#include "modbus_slave.h"
 /* USER CODE END Includes */
 
@@ -65,7 +65,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void Task_ActLED(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -109,13 +109,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
+  Scheduler_Init();
   //Modbus_Init();
+
+  Scheduler_AddTask(Task_ActLED,  500U,    0U);  /* every 500ms, not wdog-guarded */
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  Scheduler_Run();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -465,6 +469,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void Task_ActLED(void)
+{
+    HAL_GPIO_TogglePin(ACT_LED_GPIO_Port, ACT_LED_Pin);
+}
 #if 0
 /**
  * @brief UART RX complete — fires for every received byte.
