@@ -34,6 +34,101 @@ extern bool bNewData;
 #define MB_EX_ILLEGAL_DATA_ADDRESS  0x02u
 #define MB_EX_ILLEGAL_DATA_VALUE    0x03u
 
+
+/* ── Holding registers ───────────────────────────────────────────────────── */
+/* Relay channels */
+/* 0x0000 - 0x0007 channels 0..7
+ * Permission: R/W
+ * Functions: 0x01, 0x05, 0x0F
+ * Values:
+ * 0xFF00: relay on
+ * 0x0000: relay off
+ * 0xAA00: relay toggle
+ * */
+Reg_t regRelayCon0;
+Reg_t regRelayCon1;
+Reg_t regRelayCon2;
+Reg_t regRelayCon3;
+Reg_t regRelayCon4;
+Reg_t regRelayCon5;
+Reg_t regRelayCon6;
+Reg_t regRelayCon7;
+
+/* 0x00FF controls all relays
+ * Permission: W
+ * Functions: 0x05
+ * Values:
+ * 0xFF00: all relays on
+ * 0x0000: all relays off
+ * 0xAA00: all relays toggle
+ * */
+Reg_t regRelayConAll;
+
+/* 0x0200 - 0x0207 relay on delay
+ * Permission: W
+ * Functions: 0x05
+ * Values:
+ * 0x0005: 5 * 100ms
+ * */
+Reg_t regRelayDelOn0;
+Reg_t regRelayDelOn1;
+Reg_t regRelayDelOn2;
+Reg_t regRelayDelOn3;
+Reg_t regRelayDelOn4;
+Reg_t regRelayDelOn5;
+Reg_t regRelayDelOn6;
+Reg_t regRelayDelOn7;
+
+/* 0x0400 - 0x407 relay off delay
+ * Permission: W
+ * Functions: 0x05
+ * Values:
+ * 0x0005: 5 * 100ms
+ * */
+Reg_t regRelayDelOff0;
+Reg_t regRelayDelOff1;
+Reg_t regRelayDelOff2;
+Reg_t regRelayDelOff3;
+Reg_t regRelayDelOff4;
+Reg_t regRelayDelOff5;
+Reg_t regRelayDelOff6;
+Reg_t regRelayDelOff7;
+
+/* 0x2000 UART parameters
+ * Permission: R/W
+ * Functions: 0x03, 0x06
+ * Values:
+ * The high eight bits indicate the parity mode: 0x00~0x02
+ * The low eight bits indicate the baud rate mode: 0x00~0x07
+ * */
+Reg_t regUART_Param;
+
+/* 0x3000 Device address
+ * Permission: R/W
+ * Functions: 0x03, 0x06
+ * Values:
+ * Directly store Modbus address
+ * Device address: 0x0001-0x00F7
+ * Based on DIP switch config:
+ * 0000: defaults to memory stored address (default: 0x01)
+ * 0001 - 1111 : address: 0x01 - 0x0F
+ * */
+Reg_t regDevAdd;
+
+/* 0x4000 Software version
+ * Permission: R
+ * Functions: 0x03
+ * Values:
+ * Converting to decimal and then shifting the decimal point
+ * two places to the left will represent the software version
+ * 0x0064 = 100 = V1.00
+ * refer to cu16SOFTWARE_VERSION in main.h
+ * */
+Reg_t regSWVer;
+
+
+
+
 /* ── internal state ─────────────────────────────────────────────────────── */
 static uint8_t  s_rxBuf[MB_RX_BUF_SIZE];
 static uint16_t s_rxLen;

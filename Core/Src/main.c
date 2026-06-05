@@ -55,7 +55,10 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 /* Relay state — updated by Modbus write coil handler */
-volatile uint8_t g_relay_coils = 0x00;   /* bit0=CH1 ... bit7=CH8 */
+extern Coil_Status_t str_CoilStates;
+
+/* flag to indicate new data reception */
+bool bNewData = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,8 +78,7 @@ static void Task_ActLED(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern Coil_Status_t str_CoilStates;
-bool bNewData = true;
+
 /* USER CODE END 0 */
 
 /**
