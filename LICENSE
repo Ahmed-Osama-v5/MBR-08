@@ -1,21 +1,95 @@
-MIT License
+DUAL LICENSE AGREEMENT
+======================
 
-Copyright (c) 2026 Ahmed Osama
+Copyright (C) 2026  HexaMix
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software is available under two licensing options:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 1 — GNU GENERAL PUBLIC LICENSE v3 (Open Source)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+If you are using this software for personal, academic, research, or
+open-source projects, you may use, copy, modify, and distribute it
+under the terms of the GNU General Public License, Version 3 (GPL-3.0),
+as published by the Free Software Foundation.
+
+The full text of the GPL-3.0 license is included in this repository
+in the file "GPL-3.0.txt" and is also available at:
+  https://www.gnu.org/licenses/gpl-3.0.html
+
+KEY CONDITIONS UNDER GPL-3.0:
+  - Any derivative work or project incorporating this software MUST
+    also be released under GPL-3.0 (copyleft / share-alike).
+  - The complete corresponding source code MUST be made publicly
+    available to all recipients.
+  - Forks are permitted, provided they remain under GPL-3.0 and
+    retain this copyright notice.
+  - You may NOT sublicense this software under any other license
+    without the explicit written permission of the copyright holder.
+
+If your use case does not comply with all GPL-3.0 conditions
+(e.g., you cannot or will not disclose your source code), you MUST
+obtain a Commercial License (see Option 2 below).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 2 — COMMERCIAL LICENSE (Proprietary / Closed Source)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you wish to:
+  - Incorporate this software into a proprietary or closed-source product,
+  - Distribute this software as part of a commercial offering without
+    disclosing your source code,
+  - Use this software in a SaaS, embedded product, or any commercial
+    context that does not comply with GPL-3.0,
+
+... then you MUST obtain a separate Commercial License from the
+copyright holder.
+
+A Commercial License grants you:
+  - The right to use, integrate, and distribute this software in
+    proprietary and closed-source products.
+  - Exemption from the GPL-3.0 copyleft (source disclosure) requirement.
+  - Terms negotiated individually (one-time fee, subscription, or
+    royalty-based — depending on use case and volume).
+
+To inquire about a Commercial License, contact:
+
+  Ahmed Osama
+  Email: eng.a.osama92@gmail.com
+  Subject line: "Commercial License Inquiry — [Your Company / Product Name]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHICH LICENSE APPLIES TO YOU?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Use case                                     | License Required
+  ---------------------------------------------|-------------------
+  Personal / hobby project                     | GPL-3.0 (free)
+  Academic / research (non-commercial)         | GPL-3.0 (free)
+  Open-source project (source publicly avail.) | GPL-3.0 (free)
+  Fork of this project (must stay GPL-3.0)     | GPL-3.0 (free)
+  Commercial product, closed/proprietary code  | Commercial (paid)
+  SaaS or embedded product (source hidden)     | Commercial (paid)
+  Consulting / integration for third party     | Commercial (paid)
+
+If you are unsure which license applies to your situation, assume
+you need a Commercial License, or contact the copyright holder
+for clarification before proceeding.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISCLAIMER OF WARRANTIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF LICENSE NOTICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
