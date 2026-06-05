@@ -37,10 +37,14 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+typedef UART_HandleTypeDef	Modbus_UART_t;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+
+#define MODBUS_UART_CH	huart2
 
 /* USER CODE END EC */
 
