@@ -54,6 +54,9 @@ Reg_t regRelayCon5;
 Reg_t regRelayCon6;
 Reg_t regRelayCon7;
 
+/* struct that holds all relay control registers */
+Regs_t regsRelCon;
+
 /* 0x00FF controls all relays
  * Permission: W
  * Functions: 0x05
@@ -79,6 +82,9 @@ Reg_t regRelayDelOn5;
 Reg_t regRelayDelOn6;
 Reg_t regRelayDelOn7;
 
+/* struct that holds all relay on delay registers */
+Regs_t regsRelDelOn;
+
 /* 0x0400 - 0x407 relay off delay
  * Permission: W
  * Functions: 0x05
@@ -93,6 +99,9 @@ Reg_t regRelayDelOff4;
 Reg_t regRelayDelOff5;
 Reg_t regRelayDelOff6;
 Reg_t regRelayDelOff7;
+
+/* struct that holds all relay off delay registers */
+Regs_t regsRelDelOff;
 
 /* 0x2000 UART parameters
  * Permission: R/W
@@ -125,7 +134,6 @@ Reg_t regDevAdd;
  * refer to cu16SOFTWARE_VERSION in main.h
  * */
 Reg_t regSWVer;
-
 
 
 
@@ -163,8 +171,8 @@ static void sendResponse(uint16_t len)
 	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_SET);
 
     uint16_t crc = crc16(s_txBuf, len);
-    s_txBuf[len]     = (uint8_t)(crc & 0xFFu);         /* CRC lo           */
-    s_txBuf[len + 1u] = (uint8_t)((crc >> 8u) & 0xFFu); /* CRC hi          */
+    s_txBuf[len]     = (uint8_t)(crc & 0xFFu);         /* CRC low           */
+    s_txBuf[len + 1u] = (uint8_t)((crc >> 8u) & 0xFFu); /* CRC high         */
     RS485_DE_HIGH();   // ← assert DE/RE before TX
     HAL_UART_Transmit_IT(MODBUS_UART_HANDLE, s_txBuf, len + 2u);
 
@@ -410,6 +418,109 @@ static void processFrame(void)
  */
 void Modbus_Init(void)
 {
+	/* Init holding registers */
+	/* Relay channels */
+	regRelayCon0.u16Add = cu16RELAY_CON_CH_0_ADD;
+	regRelayCon0.u16Data = RELAY_OFF;
+	regRelayCon1.u16Add = cu16RELAY_CON_CH_1_ADD;
+	regRelayCon1.u16Data = RELAY_OFF;
+	regRelayCon2.u16Add = cu16RELAY_CON_CH_2_ADD;
+	regRelayCon2.u16Data = RELAY_OFF;
+	regRelayCon3.u16Add = cu16RELAY_CON_CH_3_ADD;
+	regRelayCon3.u16Data = RELAY_OFF;
+	regRelayCon4.u16Add = cu16RELAY_CON_CH_4_ADD;
+	regRelayCon4.u16Data = RELAY_OFF;
+	regRelayCon5.u16Add = cu16RELAY_CON_CH_5_ADD;
+	regRelayCon5.u16Data = RELAY_OFF;
+	regRelayCon6.u16Add = cu16RELAY_CON_CH_6_ADD;
+	regRelayCon6.u16Data = RELAY_OFF;
+	regRelayCon7.u16Add = cu16RELAY_CON_CH_7_ADD;
+	regRelayCon7.u16Data = RELAY_OFF;
+
+	regsRelCon.regs[0] = regRelayCon0;
+	regsRelCon.regs[1] = regRelayCon1;
+	regsRelCon.regs[2] = regRelayCon2;
+	regsRelCon.regs[3] = regRelayCon3;
+	regsRelCon.regs[4] = regRelayCon4;
+	regsRelCon.regs[5] = regRelayCon5;
+	regsRelCon.regs[6] = regRelayCon6;
+	regsRelCon.regs[7] = regRelayCon7;
+
+	regRelayConAll.u16Add = cu16RELAY_CON_ALL_ADD;
+	regRelayConAll.u16Data = RELAY_OFF;
+
+	/* Relay on delay */
+	regRelayDelOn0.u16Add = cu16RELAY_ON_DELAY_CH_0_ADD;
+	regRelayDelOn0.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn1.u16Add = cu16RELAY_ON_DELAY_CH_1_ADD;
+	regRelayDelOn1.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn2.u16Add = cu16RELAY_ON_DELAY_CH_2_ADD;
+	regRelayDelOn2.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn3.u16Add = cu16RELAY_ON_DELAY_CH_3_ADD;
+	regRelayDelOn3.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn4.u16Add = cu16RELAY_ON_DELAY_CH_4_ADD;
+	regRelayDelOn4.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn5.u16Add = cu16RELAY_ON_DELAY_CH_5_ADD;
+	regRelayDelOn5.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn6.u16Add = cu16RELAY_ON_DELAY_CH_6_ADD;
+	regRelayDelOn6.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+	regRelayDelOn7.u16Add = cu16RELAY_ON_DELAY_CH_7_ADD;
+	regRelayDelOn7.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
+
+
+	regsRelDelOn.regs[0] = regRelayDelOn0;
+	regsRelDelOn.regs[1] = regRelayDelOn1;
+	regsRelDelOn.regs[2] = regRelayDelOn2;
+	regsRelDelOn.regs[3] = regRelayDelOn3;
+	regsRelDelOn.regs[4] = regRelayDelOn4;
+	regsRelDelOn.regs[5] = regRelayDelOn5;
+	regsRelDelOn.regs[6] = regRelayDelOn6;
+	regsRelDelOn.regs[7] = regRelayDelOn7;
+
+	/* Relay off delay */
+	regRelayDelOff0.u16Add = cu16RELAY_OFF_DELAY_CH_0_ADD;
+	regRelayDelOff0.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff1.u16Add = cu16RELAY_OFF_DELAY_CH_1_ADD;
+	regRelayDelOff1.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff2.u16Add = cu16RELAY_OFF_DELAY_CH_2_ADD;
+	regRelayDelOff2.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff3.u16Add = cu16RELAY_OFF_DELAY_CH_3_ADD;
+	regRelayDelOff3.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff4.u16Add = cu16RELAY_OFF_DELAY_CH_4_ADD;
+	regRelayDelOff4.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff5.u16Add = cu16RELAY_OFF_DELAY_CH_5_ADD;
+	regRelayDelOff5.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff6.u16Add = cu16RELAY_OFF_DELAY_CH_6_ADD;
+	regRelayDelOff6.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+	regRelayDelOff7.u16Add = cu16RELAY_OFF_DELAY_CH_7_ADD;
+	regRelayDelOff7.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
+
+
+	regsRelDelOff.regs[0] = regRelayDelOff0;
+	regsRelDelOff.regs[1] = regRelayDelOff1;
+	regsRelDelOff.regs[2] = regRelayDelOff2;
+	regsRelDelOff.regs[3] = regRelayDelOff3;
+	regsRelDelOff.regs[4] = regRelayDelOff4;
+	regsRelDelOff.regs[5] = regRelayDelOff5;
+	regsRelDelOff.regs[6] = regRelayDelOff6;
+	regsRelDelOff.regs[7] = regRelayDelOff7;
+
+
+	/* UART parameters */
+	regUART_Param.u16Add = cu16UART_PARAM_ADD;
+	/* TODO: create default value */
+
+	/* Device address */
+	regDevAdd.u16Add = cu16DEVICE_ADDRESS_ADD;
+	regDevAdd.u16Data = 0x01;
+
+	/* Software version */
+	regSWVer.u16Add = cu16SOFTWARE_VERSION_ADD;
+	regSWVer.u16Data = cu16SOFTWARE_VERSION;
+
+/* ************************************************************** */
+
+
     memset(s_coils, 0, sizeof(s_coils));
     memset(s_regs,  0, sizeof(s_regs));
     s_rxLen = 0u;

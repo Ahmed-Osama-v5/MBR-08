@@ -34,12 +34,20 @@ extern Modbus_UART_t MODBUS_UART_CH;
 #define MB_NUM_COILS        8u      /* PB12, PB2..PB0, PA7..PA4              */
 #define MB_NUM_REGS         8u      /* holding registers, shadow coil state  */
 
+#define cu16RELAY_DEFAULT_ON_DELAY	((uint16_t) 0x0005)
+#define cu16RELAY_DEFAULT_OFF_DELAY	((uint16_t) 0x0005)
+
 /* ── Register struct and values ─────────────────────────────────────────────────────── */
 typedef struct
 {
 	uint16_t u16Data;
 	uint16_t u16Add;
 }Reg_t;
+
+typedef struct
+{
+	Reg_t regs[MB_NUM_COILS];
+}Regs_t;
 
 typedef enum
 {
