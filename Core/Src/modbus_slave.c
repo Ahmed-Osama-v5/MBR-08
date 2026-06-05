@@ -146,6 +146,7 @@ static uint8_t  s_txBuf[MB_TX_BUF_SIZE];
 static uint8_t  s_coils[MB_NUM_COILS];         /* 0 = OFF, 1 = ON          */
 static uint16_t s_regs[MB_NUM_REGS];           /* holding registers         */
 
+
 /* ── CRC-16 (Modbus polynomial 0xA001) ─────────────────────────────────── */
 static uint16_t crc16(const uint8_t *buf, uint16_t len)
 {
@@ -188,6 +189,42 @@ static void sendException(uint8_t fc, uint8_t exCode)
     sendResponse(3u);
 }
 
+static bool bIsAddValid(uint16_t regAdd)
+{
+	if((regAdd == cu16RELAY_CON_CH_0_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_1_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_2_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_3_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_4_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_5_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_6_ADD)
+			|| (regAdd == cu16RELAY_CON_CH_7_ADD)
+			|| (regAdd == cu16RELAY_CON_ALL_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_0_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_1_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_2_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_3_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_4_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_5_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_6_ADD)
+			|| (regAdd == cu16RELAY_ON_DELAY_CH_7_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_0_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_1_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_2_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_3_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_4_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_5_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_6_ADD)
+			|| (regAdd == cu16RELAY_OFF_DELAY_CH_7_ADD)
+			|| (regAdd == cu16UART_PARAM_ADD)
+			|| (regAdd == cu16DEVICE_ADDRESS_ADD)
+			|| (regAdd == cu16SOFTWARE_VERSION_ADD))
+	{
+		return true;
+	}
+	return false;
+}
+
 /* ── FC 0x01 — Read Coils ───────────────────────────────────────────────── */
 static void fc01_readCoils(void)
 {
@@ -199,10 +236,13 @@ static void fc01_readCoils(void)
         sendException(0x01u, MB_EX_ILLEGAL_DATA_VALUE);
         return;
     }
-    if ((startAddr + quantity) > MB_NUM_COILS)
+    for(uint16_t i = 0;i<quantity;i++)
     {
-        sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
+    	if(! bIsAddValid(startAddr + i))
+    	{
+    		sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
+    		return;
+    	}
     }
 
     uint8_t byteCount = (uint8_t)((quantity + 7u) / 8u);
@@ -210,14 +250,50 @@ static void fc01_readCoils(void)
     s_txBuf[1] = 0x01u;
     s_txBuf[2] = byteCount;
 
+    /* zero out data bytes first */
     for (uint8_t i = 0u; i < byteCount; i++)
         s_txBuf[3u + i] = 0x00u;
 
-    for (uint16_t i = 0u; i < quantity; i++)
-    {
-        if (s_coils[startAddr + i])
-            s_txBuf[3u + (i / 8u)] |= (uint8_t)(1u << (i % 8u));
-    }
+    /* Coil states */
+	if((startAddr >= cu16RELAY_CON_CH_0_ADD) || (startAddr <= cu16RELAY_CON_CH_7_ADD))
+	{
+		/* Pack coil states — LSB of first byte = coil at startAddr */
+		for (uint16_t i = 0u; i < quantity; i++)
+		{
+			/* Any non-zero value considered COIL = ON */
+			if (regsRelCon.pRegs[(startAddr-(cu16RELAY_CON_CH_0_ADD)) + i]->u16Data != 0x0000)
+				s_txBuf[3u + (i / 8u)] |= (uint8_t)(1u << (i % 8u));
+		}
+	}
+	/* UART parameters */
+	else if(startAddr == cu16UART_PARAM_ADD)
+	{
+		// Low
+		s_txBuf[3u] = (uint8_t)regUART_Param.u16Data;
+		// High
+		s_txBuf[4u] = (uint8_t)(regUART_Param.u16Data >> 8);
+	}
+	/* Device address */
+	else if(startAddr == cu16DEVICE_ADDRESS_ADD)
+	{
+		// Low
+		s_txBuf[3u] = (uint8_t)regDevAdd.u16Data;
+		// High
+		s_txBuf[4u] = (uint8_t)(regDevAdd.u16Data >> 8);
+	}
+
+	/* SW version */
+	else if(startAddr == cu16SOFTWARE_VERSION_ADD)
+	{
+		// Low
+		s_txBuf[3u] = (uint8_t)regSWVer.u16Data;
+		// High
+		s_txBuf[4u] = (uint8_t)(regSWVer.u16Data >> 8);
+	}
+	else
+	{
+		/* Do nothing */
+	}
 
     sendResponse(3u + byteCount);
 }
@@ -437,14 +513,14 @@ void Modbus_Init(void)
 	regRelayCon7.u16Add = cu16RELAY_CON_CH_7_ADD;
 	regRelayCon7.u16Data = RELAY_OFF;
 
-	regsRelCon.regs[0] = regRelayCon0;
-	regsRelCon.regs[1] = regRelayCon1;
-	regsRelCon.regs[2] = regRelayCon2;
-	regsRelCon.regs[3] = regRelayCon3;
-	regsRelCon.regs[4] = regRelayCon4;
-	regsRelCon.regs[5] = regRelayCon5;
-	regsRelCon.regs[6] = regRelayCon6;
-	regsRelCon.regs[7] = regRelayCon7;
+	regsRelCon.pRegs[0] = &regRelayCon0;
+	regsRelCon.pRegs[1] = &regRelayCon1;
+	regsRelCon.pRegs[2] = &regRelayCon2;
+	regsRelCon.pRegs[3] = &regRelayCon3;
+	regsRelCon.pRegs[4] = &regRelayCon4;
+	regsRelCon.pRegs[5] = &regRelayCon5;
+	regsRelCon.pRegs[6] = &regRelayCon6;
+	regsRelCon.pRegs[7] = &regRelayCon7;
 
 	regRelayConAll.u16Add = cu16RELAY_CON_ALL_ADD;
 	regRelayConAll.u16Data = RELAY_OFF;
@@ -468,14 +544,14 @@ void Modbus_Init(void)
 	regRelayDelOn7.u16Data = cu16RELAY_DEFAULT_ON_DELAY;
 
 
-	regsRelDelOn.regs[0] = regRelayDelOn0;
-	regsRelDelOn.regs[1] = regRelayDelOn1;
-	regsRelDelOn.regs[2] = regRelayDelOn2;
-	regsRelDelOn.regs[3] = regRelayDelOn3;
-	regsRelDelOn.regs[4] = regRelayDelOn4;
-	regsRelDelOn.regs[5] = regRelayDelOn5;
-	regsRelDelOn.regs[6] = regRelayDelOn6;
-	regsRelDelOn.regs[7] = regRelayDelOn7;
+	regsRelDelOn.pRegs[0] = &regRelayDelOn0;
+	regsRelDelOn.pRegs[1] = &regRelayDelOn1;
+	regsRelDelOn.pRegs[2] = &regRelayDelOn2;
+	regsRelDelOn.pRegs[3] = &regRelayDelOn3;
+	regsRelDelOn.pRegs[4] = &regRelayDelOn4;
+	regsRelDelOn.pRegs[5] = &regRelayDelOn5;
+	regsRelDelOn.pRegs[6] = &regRelayDelOn6;
+	regsRelDelOn.pRegs[7] = &regRelayDelOn7;
 
 	/* Relay off delay */
 	regRelayDelOff0.u16Add = cu16RELAY_OFF_DELAY_CH_0_ADD;
@@ -496,14 +572,14 @@ void Modbus_Init(void)
 	regRelayDelOff7.u16Data = cu16RELAY_DEFAULT_OFF_DELAY;
 
 
-	regsRelDelOff.regs[0] = regRelayDelOff0;
-	regsRelDelOff.regs[1] = regRelayDelOff1;
-	regsRelDelOff.regs[2] = regRelayDelOff2;
-	regsRelDelOff.regs[3] = regRelayDelOff3;
-	regsRelDelOff.regs[4] = regRelayDelOff4;
-	regsRelDelOff.regs[5] = regRelayDelOff5;
-	regsRelDelOff.regs[6] = regRelayDelOff6;
-	regsRelDelOff.regs[7] = regRelayDelOff7;
+	regsRelDelOff.pRegs[0] = &regRelayDelOff0;
+	regsRelDelOff.pRegs[1] = &regRelayDelOff1;
+	regsRelDelOff.pRegs[2] = &regRelayDelOff2;
+	regsRelDelOff.pRegs[3] = &regRelayDelOff3;
+	regsRelDelOff.pRegs[4] = &regRelayDelOff4;
+	regsRelDelOff.pRegs[5] = &regRelayDelOff5;
+	regsRelDelOff.pRegs[6] = &regRelayDelOff6;
+	regsRelDelOff.pRegs[7] = &regRelayDelOff7;
 
 
 	/* UART parameters */

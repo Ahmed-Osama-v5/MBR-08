@@ -46,7 +46,7 @@ typedef struct
 
 typedef struct
 {
-	Reg_t regs[MB_NUM_COILS];
+	Reg_t* pRegs[MB_NUM_COILS];
 }Regs_t;
 
 typedef enum
