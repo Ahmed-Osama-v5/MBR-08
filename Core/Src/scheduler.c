@@ -1,4 +1,9 @@
-/*
+/**
+ *
+ * Copyright (C) 2026 HexaMix
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Dual-licensed — see LICENSE for commercial use.
+ *
  * scheduler.c
  *
  *  Created on: 4 Jun 2026

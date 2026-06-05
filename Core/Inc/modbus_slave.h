@@ -1,4 +1,9 @@
 /**
+ *
+ * Copyright (C) 2026 HexaMix
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Dual-licensed — see LICENSE for commercial use.
+ *
  * @file    modbus_slave.h
  * @brief   Minimal Modbus RTU Slave
  *

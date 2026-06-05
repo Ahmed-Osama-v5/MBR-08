@@ -1,4 +1,9 @@
-/*
+/**
+ *
+ * Copyright (C) 2026 HexaMix
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Dual-licensed — see LICENSE for commercial use.
+ *
  * modbus_timer.h
  *
  *  Created on: 3 Jun 2026
