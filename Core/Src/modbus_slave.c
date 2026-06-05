@@ -143,9 +143,6 @@ static uint16_t s_rxLen;
        uint8_t  g_lastRxByte;   /* HAL writes here; exposed to main.c       */
 static uint8_t  s_txBuf[MB_TX_BUF_SIZE];
 
-static uint8_t  s_coils[MB_NUM_COILS];         /* 0 = OFF, 1 = ON          */
-static uint16_t s_regs[MB_NUM_REGS];           /* holding registers         */
-
 
 /* ── CRC-16 (Modbus polynomial 0xA001) ─────────────────────────────────── */
 static uint16_t crc16(const uint8_t *buf, uint16_t len)
@@ -225,6 +222,78 @@ static bool bIsAddValid(uint16_t regAdd)
 	return false;
 }
 
+/**
+ * @brief iterates through register addresses
+ * and returns pointer to required register address
+ * @param u16Addr
+ * @return (Reg_t*) pointer to required register address
+ */
+static Reg_t* pFindReg(uint16_t u16Addr)
+{
+	if(u16Addr == cu16RELAY_CON_CH_0_ADD)
+		return &regRelayCon0;
+	else if(u16Addr == cu16RELAY_CON_CH_1_ADD)
+		return &regRelayCon1;
+	else if(u16Addr == cu16RELAY_CON_CH_2_ADD)
+		return &regRelayCon2;
+	else if(u16Addr == cu16RELAY_CON_CH_3_ADD)
+		return &regRelayCon3;
+	else if(u16Addr == cu16RELAY_CON_CH_4_ADD)
+		return &regRelayCon4;
+	else if(u16Addr == cu16RELAY_CON_CH_5_ADD)
+		return &regRelayCon5;
+	else if(u16Addr == cu16RELAY_CON_CH_6_ADD)
+		return &regRelayCon6;
+	else if(u16Addr == cu16RELAY_CON_CH_7_ADD)
+		return &regRelayCon7;
+
+	else if(u16Addr == cu16RELAY_CON_ALL_ADD)
+		return &regRelayConAll;
+
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_0_ADD)
+		return &regRelayDelOn0;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_1_ADD)
+		return &regRelayDelOn1;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_2_ADD)
+		return &regRelayDelOn2;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_3_ADD)
+		return &regRelayDelOn3;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_4_ADD)
+		return &regRelayDelOn4;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_5_ADD)
+		return &regRelayDelOn5;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_6_ADD)
+		return &regRelayDelOn6;
+	else if(u16Addr == cu16RELAY_ON_DELAY_CH_7_ADD)
+		return &regRelayDelOn7;
+
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_0_ADD)
+		return &regRelayDelOff0;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_1_ADD)
+		return &regRelayDelOff1;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_2_ADD)
+		return &regRelayDelOff2;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_3_ADD)
+		return &regRelayDelOff3;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_4_ADD)
+		return &regRelayDelOff4;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_5_ADD)
+		return &regRelayDelOff5;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_6_ADD)
+		return &regRelayDelOff6;
+	else if(u16Addr == cu16RELAY_OFF_DELAY_CH_7_ADD)
+		return &regRelayDelOff7;
+
+	else if(u16Addr == cu16UART_PARAM_ADD)
+		return &regUART_Param;
+
+	else if(u16Addr == cu16DEVICE_ADDRESS_ADD)
+		return &regDevAdd;
+
+	else
+		return NULL;
+}
+
 /* ── FC 0x01 — Read Coils ───────────────────────────────────────────────── */
 static void fc01_readCoils(void)
 {
@@ -248,6 +317,115 @@ static void fc01_readCoils(void)
     uint8_t byteCount = (uint8_t)((quantity + 7u) / 8u);
     s_txBuf[0] = MB_SLAVE_ADDR;
     s_txBuf[1] = 0x01u;
+    s_txBuf[2] = byteCount;
+
+    /* zero out data bytes first */
+    for (uint8_t i = 0u; i < byteCount; i++)
+    {
+    	s_txBuf[3u + i] = 0x00u;
+    }
+
+	/* Pack coil states — LSB of first byte = coil at startAddr */
+	for (uint16_t i = 0u; i < quantity; i++)
+	{
+		/* Any non-zero value considered COIL = ON */
+		if (regsRelCon.pRegs[(startAddr-(cu16RELAY_CON_CH_0_ADD)) + i]->u16Data != 0x0000)
+			s_txBuf[3u + (i / 8u)] |= (uint8_t)(1u << (i % 8u));
+	}
+
+    sendResponse(3u + byteCount);
+}
+
+/* ── FC 0x05 — Write Single Coil ────────────────────────────────────────── */
+static void fc05_writeSingleCoil(void)
+{
+    uint16_t addr  = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
+    uint16_t value = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
+
+    if (addr >= MB_NUM_COILS)
+    {
+        sendException(0x05u, MB_EX_ILLEGAL_DATA_ADDRESS);
+        return;
+    }
+    if (value != cu16_RELAY_OFF && value != cu16_RELAY_ON && value !=cu16_RELAY_TOGGLE)
+    {
+        sendException(0x05u, MB_EX_ILLEGAL_DATA_VALUE);
+        return;
+    }
+
+    /* Write value to register */
+    regsRelCon.pRegs[addr]->u16Data = (value == cu16_RELAY_ON) ? cu16_RELAY_ON : cu16_RELAY_OFF;
+
+    // sync value with app layer
+	bNewData = true;
+
+    /* echo request as response */
+    memcpy(s_txBuf, s_rxBuf, 6u);
+    sendResponse(6u);
+}
+
+/* ── FC 0x0F — Write Multiple Coils ─────────────────────────────────────── */
+static void fc0F_writeMultipleCoils(void)
+{
+    uint16_t startAddr = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
+    uint16_t quantity  = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
+
+    if (quantity == 0u || quantity > MB_NUM_COILS)
+    {
+        sendException(0x0Fu, MB_EX_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    for(uint16_t i = 0;i<quantity;i++)
+	{
+		if(! bIsAddValid(startAddr + i))
+		{
+			sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
+			return;
+		}
+	}
+
+    for (uint16_t i = 0u; i < quantity; i++)
+    {
+        uint8_t byteIdx = (uint8_t)(i / 8u);
+        uint8_t bitIdx  = (uint8_t)(i % 8u);
+        regsRelCon.pRegs[startAddr + i]->u16Data = (s_rxBuf[7u + byteIdx] >> bitIdx) & 0x01u;
+    }
+
+    // sync value with app layer
+	bNewData = true;
+
+    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[1] = 0x0Fu;
+    s_txBuf[2] = s_rxBuf[2];
+    s_txBuf[3] = s_rxBuf[3];
+    s_txBuf[4] = s_rxBuf[4];
+    s_txBuf[5] = s_rxBuf[5];
+    sendResponse(6u);
+}
+
+/* ── FC 0x03 — Read Holding Registers ───────────────────────────────────── */
+static void fc03_readHoldingRegs(void)
+{
+    uint16_t startAddr = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
+    uint16_t quantity  = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
+
+    if (quantity == 0u || quantity > MB_NUM_REGS)
+    {
+        sendException(0x03u, MB_EX_ILLEGAL_DATA_VALUE);
+        return;
+    }
+    for(uint16_t i = 0;i<quantity;i++)
+    {
+    	if(! bIsAddValid(startAddr + i))
+    	{
+    		sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
+    		return;
+    	}
+    }
+
+    uint8_t byteCount = (uint8_t)(quantity * 2u);
+    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[1] = 0x03u;
     s_txBuf[2] = byteCount;
 
     /* zero out data bytes first */
@@ -298,119 +476,29 @@ static void fc01_readCoils(void)
     sendResponse(3u + byteCount);
 }
 
-/* ── FC 0x05 — Write Single Coil ────────────────────────────────────────── */
-static void fc05_writeSingleCoil(void)
-{
-    uint16_t addr  = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
-    uint16_t value = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
-
-    if (addr >= MB_NUM_COILS)
-    {
-        sendException(0x05u, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
-    }
-    if (value != cu16_RELAY_OFF && value != cu16_RELAY_ON && value !=cu16_RELAY_TOGGLE)
-    {
-        sendException(0x05u, MB_EX_ILLEGAL_DATA_VALUE);
-        return;
-    }
-
-    s_coils[addr] = (value == cu16_RELAY_ON) ? 1u : 0u;
-    s_regs[addr]  = s_coils[addr];
-
-    // sync value with app layer
-    str_CoilStates.coil[addr] = s_coils[addr];
-
-    /* echo request as response */
-    memcpy(s_txBuf, s_rxBuf, 6u);
-    sendResponse(6u);
-}
-
-/* ── FC 0x0F — Write Multiple Coils ─────────────────────────────────────── */
-static void fc0F_writeMultipleCoils(void)
-{
-    uint16_t startAddr = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
-    uint16_t quantity  = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
-
-    if (quantity == 0u || quantity > MB_NUM_COILS)
-    {
-        sendException(0x0Fu, MB_EX_ILLEGAL_DATA_VALUE);
-        return;
-    }
-    if ((startAddr + quantity) > MB_NUM_COILS)
-    {
-        sendException(0x0Fu, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
-    }
-
-    for (uint16_t i = 0u; i < quantity; i++)
-    {
-        uint8_t byteIdx = (uint8_t)(i / 8u);
-        uint8_t bitIdx  = (uint8_t)(i % 8u);
-        s_coils[startAddr + i] = (s_rxBuf[7u + byteIdx] >> bitIdx) & 0x01u;
-        s_regs[startAddr + i]  = s_coils[startAddr + i];
-
-        // sync value with app layer
-        str_CoilStates.coil[startAddr + i] = s_coils[startAddr + i];
-    }
-
-    s_txBuf[0] = MB_SLAVE_ADDR;
-    s_txBuf[1] = 0x0Fu;
-    s_txBuf[2] = s_rxBuf[2];
-    s_txBuf[3] = s_rxBuf[3];
-    s_txBuf[4] = s_rxBuf[4];
-    s_txBuf[5] = s_rxBuf[5];
-    sendResponse(6u);
-}
-
-/* ── FC 0x03 — Read Holding Registers ───────────────────────────────────── */
-static void fc03_readHoldingRegs(void)
-{
-    uint16_t startAddr = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
-    uint16_t quantity  = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
-
-    if (quantity == 0u || quantity > MB_NUM_REGS)
-    {
-        sendException(0x03u, MB_EX_ILLEGAL_DATA_VALUE);
-        return;
-    }
-    if ((startAddr + quantity) > MB_NUM_REGS)
-    {
-        sendException(0x03u, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
-    }
-
-    uint8_t byteCount = (uint8_t)(quantity * 2u);
-    s_txBuf[0] = MB_SLAVE_ADDR;
-    s_txBuf[1] = 0x03u;
-    s_txBuf[2] = byteCount;
-
-    for (uint16_t i = 0u; i < quantity; i++)
-    {
-        s_txBuf[3u + (i * 2u)]      = (uint8_t)(s_regs[startAddr + i] >> 8u);
-        s_txBuf[3u + (i * 2u) + 1u] = (uint8_t)(s_regs[startAddr + i] & 0xFFu);
-    }
-
-    sendResponse(3u + byteCount);
-}
-
 /* ── FC 0x06 — Write Single Register ────────────────────────────────────── */
 static void fc06_writeSingleReg(void)
 {
     uint16_t addr  = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
     uint16_t value = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
 
-    if (addr >= MB_NUM_REGS)
+    if(! bIsAddValid(addr))
+	{
+		sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
+		return;
+	}
+
+    Reg_t* pTmpReg = pFindReg(addr);
+	if(pTmpReg != NULL)
+	{
+		pTmpReg->u16Data = value;
+	}
+
+    if((addr >= cu16RELAY_CON_CH_0_ADD) || (addr <= cu16RELAY_CON_CH_7_ADD))
     {
-        sendException(0x06u, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
+        // sync value with app layer
+    	bNewData = true;
     }
-
-    s_regs[addr]  = value;
-    s_coils[addr] = (value != 0u) ? 1u : 0u;
-
-    // sync value with app layer
-    str_CoilStates.coil[addr] = s_coils[addr];
 
     memcpy(s_txBuf, s_rxBuf, 6u);
     sendResponse(6u);
@@ -427,21 +515,31 @@ static void fc10_writeMultipleRegs(void)
         sendException(0x10u, MB_EX_ILLEGAL_DATA_VALUE);
         return;
     }
-    if ((startAddr + quantity) > MB_NUM_REGS)
+
+    for(uint16_t i = 0;i<quantity;i++)
     {
-        sendException(0x10u, MB_EX_ILLEGAL_DATA_ADDRESS);
-        return;
+    	if(! bIsAddValid(startAddr + i))
+    	{
+    		sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
+    		return;
+    	}
     }
 
     for (uint16_t i = 0u; i < quantity; i++)
     {
         uint16_t val = ((uint16_t)s_rxBuf[7u + (i * 2u)] << 8u)
                      | s_rxBuf[7u + (i * 2u) + 1u];
-        s_regs[startAddr + i]  = val;
-        s_coils[startAddr + i] = (val != 0u) ? 1u : 0u;
+        Reg_t* pTmpReg = pFindReg(startAddr + i);
+        if(pTmpReg != NULL)
+        {
+        	pTmpReg->u16Data = val;
+        }
 
-        // sync value with app layer
-        str_CoilStates.coil[startAddr + i] = s_coils[startAddr + i];
+        if((startAddr + i >= cu16RELAY_CON_CH_0_ADD) || (startAddr + i <= cu16RELAY_CON_CH_7_ADD))
+		{
+			// sync value with app layer
+			bNewData = true;
+		}
     }
 
     s_txBuf[0] = MB_SLAVE_ADDR;
@@ -596,18 +694,7 @@ void Modbus_Init(void)
 
 /* ************************************************************** */
 
-
-    memset(s_coils, 0, sizeof(s_coils));
-    memset(s_regs,  0, sizeof(s_regs));
     s_rxLen = 0u;
-
-    for (uint16_t i = 0u; i < MB_NUM_COILS; i++)
-    {
-    	if (s_coils[i] == cu16_RELAY_ON)
-    		str_CoilStates.coil[i] = 1;
-    	else
-    		str_CoilStates.coil[i] = 0;
-    }
 
     /* enable UART receive interrupt — 1 byte at a time */
     HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
@@ -634,8 +721,6 @@ void Modbus_RxByteCallback(uint8_t byte)
 
 	/* Turn RX led off */
 	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_RESET);
-
-	bNewData = true;
 }
 
 /**
