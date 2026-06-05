@@ -220,11 +220,6 @@ void ModbusTimer_Stop(void)
     prvLPTIM_Stop();
 }
 
-uint32_t Modbus_GetArrValue(void)
-{
-	return s_arrValue;
-}
-
 /**
  * @brief  LPTIM1 global IRQ handler.
  */

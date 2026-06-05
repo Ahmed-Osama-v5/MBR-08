@@ -11,8 +11,8 @@
  *   0x10 — Write Multiple Registers
  *
  * Frame flow:
- *   UART RX byte → Modbus_RxByteCallback() → buffer + restart LPTIM1
- *   LPTIM1 fires  → Modbus_TimerCallback()  → process frame → send response
+ *   UART RX byte → Modbus_RxByteCallback() → buffer + restart timer
+ *   timer fires  → Modbus_TimerCallback()  → process frame → send response
  */
 
 #include "modbus_slave.h"
@@ -66,7 +66,7 @@ static void sendResponse(uint16_t len)
     s_txBuf[len]     = (uint8_t)(crc & 0xFFu);         /* CRC lo           */
     s_txBuf[len + 1u] = (uint8_t)((crc >> 8u) & 0xFFu); /* CRC hi          */
     RS485_DE_HIGH();   // ← assert DE/RE before TX
-    HAL_UART_Transmit_IT(&huart2, s_txBuf, len + 2u);
+    HAL_UART_Transmit_IT(MODBUS_UART_HANDLE, s_txBuf, len + 2u);
 
 	/* Turn TX led off */
 	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_RESET);
@@ -147,7 +147,6 @@ static void fc0F_writeMultipleCoils(void)
 {
     uint16_t startAddr = ((uint16_t)s_rxBuf[2] << 8u) | s_rxBuf[3];
     uint16_t quantity  = ((uint16_t)s_rxBuf[4] << 8u) | s_rxBuf[5];
-    uint8_t  byteCount = s_rxBuf[6];
 
     if (quantity == 0u || quantity > MB_NUM_COILS)
     {
@@ -324,7 +323,7 @@ void Modbus_Init(void)
     }
 
     /* enable UART receive interrupt — 1 byte at a time */
-    HAL_UART_Receive_IT(&huart2, &g_lastRxByte, 1u);
+    HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
 }
 
 /**
@@ -338,15 +337,13 @@ void Modbus_RxByteCallback(uint8_t byte)
 
     /* restart 3.5T timer on every byte */
 	/* On every received byte — restart 3.5T window */
-	HAL_LPTIM_OnePulse_Stop_IT(&hlptim1);                        /* stop + reset counter */
-	uint32_t s_arrvalue = Modbus_GetArrValue();
-	HAL_LPTIM_OnePulse_Start_IT(&hlptim1, s_arrvalue, 0U);       /* fresh one-shot */
+	ModbusTimer_Restart();
 
     if (s_rxLen < MB_RX_BUF_SIZE)
         s_rxBuf[s_rxLen++] = byte;
 
     /* re-arm for next byte */
-    HAL_UART_Receive_IT(&huart2, &g_lastRxByte, 1u);
+    HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
 
 	/* Turn RX led off */
 	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_RESET);
@@ -358,15 +355,15 @@ void Modbus_RxByteCallback(uint8_t byte)
  * @brief Call from HAL_TIM_PeriodElapsedCallback when htim->Instance == TIM10.
  *        Signals 3.5T silence — frame is complete.
  */
-void Modbus_TimerCallback(void)
+void ModbusTimer_FrameDoneCallback(void)
 {
 	/* Explicit stop (e.g. during TX turnaround) */
-	HAL_LPTIM_OnePulse_Stop_IT(&hlptim1);
+	ModbusTimer_Stop();
     processFrame();
     s_rxLen = 0u;
 
     /* re-arm UART from start of buffer */
-    HAL_UART_Receive_IT(&huart2, &g_lastRxByte, 1u);
+    HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)

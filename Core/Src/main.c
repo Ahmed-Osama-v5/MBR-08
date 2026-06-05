@@ -118,6 +118,7 @@ int main(void)
   Scheduler_Init();
   Modbus_Init();
 
+  /* Note: Modbus has no tasks in the scheduler because it's all run through interrupts */
   Scheduler_AddTask(Task_RelayUpdate,     5U,   50U);  /* every 5ms,  stuck if >50ms  */
   Scheduler_AddTask(Task_ActLED,  500U,    0U);  /* every 500ms, not wdog-guarded */
   /* USER CODE END 2 */

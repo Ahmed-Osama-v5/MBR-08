@@ -26,7 +26,6 @@ void     ModbusTimer_Stop(void);
 
 /* Weak callback — override in application */
 void     ModbusTimer_FrameDoneCallback(void);
-uint32_t Modbus_GetArrValue(void);
 
 
 #endif /* INC_MODBUS_TIMER_H_ */
