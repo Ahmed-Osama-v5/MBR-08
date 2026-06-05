@@ -54,8 +54,11 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-/* Relay state — updated by Modbus write coil handler */
-volatile uint8_t g_relay_coils = 0x00;   /* bit0=CH1 ... bit7=CH8 */
+/* struct that holds all relay control registers */
+extern Regs_t regsRelCon;
+
+/* flag to indicate new data reception */
+bool bNewData = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,8 +78,7 @@ static void Task_ActLED(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern Coil_Status_t str_CoilStates;
-bool bNewData = true;
+
 /* USER CODE END 0 */
 
 /**
@@ -484,7 +486,7 @@ static void Task_RelayUpdate(void)
 	if(bNewData)
 	{
 		for (uint8_t ch = 0U; ch < MB_NUM_COILS; ch++) {
-			GPIO_PinState state = (str_CoilStates.coil[ch] & 0x01U) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+			GPIO_PinState state = (regsRelCon.pRegs[ch]->u16Data == cu16_RELAY_ON) ? GPIO_PIN_SET : GPIO_PIN_RESET;
 
 			switch (ch) {
 				case 0: HAL_GPIO_WritePin(REL_0_GPIO_Port, REL_0_Pin, state); break;

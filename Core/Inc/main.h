@@ -44,6 +44,10 @@ typedef UART_HandleTypeDef	Modbus_UART_t;
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 
+/* Software version */
+/* Version 1.00 = 100 */
+#define cu16SOFTWARE_VERSION	((uint16_t) 100u)
+
 #define MODBUS_UART_CH	huart2
 
 /* USER CODE END EC */
