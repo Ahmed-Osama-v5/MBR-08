@@ -147,6 +147,19 @@ typedef enum
  * */
 #define	cu16SOFTWARE_VERSION_ADD		((uint16_t) 0x4000)
 
+/* ── EEPROM addresses ──────────────────────────────────────────────────── */
+
+/* The high eight bits indicate the parity mode: 0x00~0x02
+ * The low eight bits indicate the baud rate mode: 0x00~0x07
+ * */
+#define	cu16UART_PARAM_EE_ADD			((uint16_t) 0x0001)
+
+/* SW version */
+#define cu16DEVICE_ADDRESS_EE_ADD		((uint16_t) 0x0003)
+
+/* SW version */
+#define cu16SW_VERSION_EE_ADD			((uint16_t) 0x0005)
+
 /* Coil values */
 #define cu16_RELAY_OFF		((uint16_t) 0x0000u)
 #define cu16_RELAY_ON		((uint16_t) 0xFF00u)

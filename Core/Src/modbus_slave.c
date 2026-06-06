@@ -20,10 +20,11 @@
  *   timer fires  → Modbus_TimerCallback()  → process frame → send response
  */
 
-#include "modbus_slave.h"
-#include "modbus_timer.h"
 #include <string.h>
 #include <stdbool.h>
+#include "modbus_slave.h"
+#include "modbus_timer.h"
+#include "i2c_eeprom.h"
 
 /* ── Coils status ───────────────────────────────────────────────────────── */
 Coil_Status_t str_CoilStates;
@@ -595,6 +596,11 @@ static void processFrame(void)
  */
 void Modbus_Init(void)
 {
+	/* Init EEPROM */
+	EEPROM_vidInit();
+
+	/* ************************************************************** */
+
 	/* Init holding registers */
 	/* Relay channels */
 	regRelayCon0.u16Add = cu16RELAY_CON_CH_0_ADD;
@@ -683,13 +689,25 @@ void Modbus_Init(void)
 	regsRelDelOff.pRegs[7] = &regRelayDelOff7;
 
 
+	uint8_t au8Tmp[2];
 	/* UART parameters */
 	regUART_Param.u16Add = cu16UART_PARAM_ADD;
-	/* TODO: create default value */
+
+	/* Read UART parameters from EEPROM */
+	if(EEPROM_enuRead(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+	{
+		regUART_Param.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
+	}
 
 	/* Device address */
 	regDevAdd.u16Add = cu16DEVICE_ADDRESS_ADD;
+	/* default address in case no eeprom  read success*/
 	regDevAdd.u16Data = 0x01;
+
+	if(EEPROM_enuRead(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+	{
+		regDevAdd.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
+	}
 
 	/* Software version */
 	regSWVer.u16Add = cu16SOFTWARE_VERSION_ADD;
@@ -726,12 +744,10 @@ void Modbus_Init(void)
 	if(u8InputVal == 0x00)
 	{
 		/* default to EEPROM address */
-		/* TODO: Get address from EEPROM and remove hard-coding */
-		u8DevAddr = 0x01;
 	}
 	else if((u8InputVal > 0x00) && (u8InputVal < 0x10))
 	{
-		u8DevAddr = u8InputVal;
+		regDevAdd.u16Data = u8InputVal;
 	}
 	else
 	{
