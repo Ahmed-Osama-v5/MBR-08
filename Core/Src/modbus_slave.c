@@ -138,6 +138,9 @@ Reg_t regSWVer;
 
 
 /* ── internal state ─────────────────────────────────────────────────────── */
+/* default address to 0x01 */
+static uint8_t u8DevAddr = 0x01;
+
 static uint8_t  s_rxBuf[MB_RX_BUF_SIZE];
 static uint16_t s_rxLen;
        uint8_t  g_lastRxByte;   /* HAL writes here; exposed to main.c       */
@@ -180,7 +183,7 @@ static void sendResponse(uint16_t len)
 
 static void sendException(uint8_t fc, uint8_t exCode)
 {
-    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[0] = u8DevAddr;
     s_txBuf[1] = fc | 0x80u;
     s_txBuf[2] = exCode;
     sendResponse(3u);
@@ -315,7 +318,7 @@ static void fc01_readCoils(void)
     }
 
     uint8_t byteCount = (uint8_t)((quantity + 7u) / 8u);
-    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[0] = u8DevAddr;
     s_txBuf[1] = 0x01u;
     s_txBuf[2] = byteCount;
 
@@ -394,7 +397,7 @@ static void fc0F_writeMultipleCoils(void)
     // sync value with app layer
 	bNewData = true;
 
-    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[0] = u8DevAddr;
     s_txBuf[1] = 0x0Fu;
     s_txBuf[2] = s_rxBuf[2];
     s_txBuf[3] = s_rxBuf[3];
@@ -424,7 +427,7 @@ static void fc03_readHoldingRegs(void)
     }
 
     uint8_t byteCount = (uint8_t)(quantity * 2u);
-    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[0] = u8DevAddr;
     s_txBuf[1] = 0x03u;
     s_txBuf[2] = byteCount;
 
@@ -542,7 +545,7 @@ static void fc10_writeMultipleRegs(void)
 		}
     }
 
-    s_txBuf[0] = MB_SLAVE_ADDR;
+    s_txBuf[0] = u8DevAddr;
     s_txBuf[1] = 0x10u;
     s_txBuf[2] = s_rxBuf[2];
     s_txBuf[3] = s_rxBuf[3];
@@ -559,7 +562,7 @@ static void processFrame(void)
         return;
 
     /* address filter */
-    if (s_rxBuf[0] != MB_SLAVE_ADDR)
+    if (s_rxBuf[0] != u8DevAddr)
         return;
 
     /* CRC check */
@@ -691,6 +694,50 @@ void Modbus_Init(void)
 	/* Software version */
 	regSWVer.u16Add = cu16SOFTWARE_VERSION_ADD;
 	regSWVer.u16Data = cu16SOFTWARE_VERSION;
+
+/* ************************************************************** */
+
+	/* Set device address */
+	/* Read addr GPIO pins */
+	uint8_t u8InputVal = 0x00;
+
+	/* DIP switch pin becomes 0 when switched to "ON" position */
+	if(HAL_GPIO_ReadPin(ADD_0_GPIO_Port, ADD_0_Pin) == GPIO_PIN_SET)
+		u8InputVal &= ~(1 << 0);
+	else
+		u8InputVal |= (1 << 0);
+
+	if(HAL_GPIO_ReadPin(ADD_1_GPIO_Port, ADD_1_Pin) == GPIO_PIN_SET)
+		u8InputVal &= ~(1 << 1);
+	else
+		u8InputVal |= (1 << 1);
+
+	if(HAL_GPIO_ReadPin(ADD_2_GPIO_Port, ADD_2_Pin) == GPIO_PIN_SET)
+		u8InputVal &= ~(1 << 2);
+	else
+		u8InputVal |= (1 << 2);
+
+	if(HAL_GPIO_ReadPin(ADD_3_GPIO_Port, ADD_3_Pin) == GPIO_PIN_SET)
+		u8InputVal &= ~(1 << 3);
+	else
+		u8InputVal |= (1 << 3);
+
+	/* Parse value */
+	if(u8InputVal == 0x00)
+	{
+		/* default to EEPROM address */
+		/* TODO: Get address from EEPROM and remove hard-coding */
+		u8DevAddr = 0x01;
+	}
+	else if((u8InputVal > 0x00) && (u8InputVal < 0x10))
+	{
+		u8DevAddr = u8InputVal;
+	}
+	else
+	{
+		/* Unsupported address setting, ignore */
+	}
+
 
 /* ************************************************************** */
 

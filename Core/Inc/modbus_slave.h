@@ -28,7 +28,6 @@ extern Modbus_UART_t MODBUS_UART_CH;
 #define RS485_DE_LOW()  HAL_GPIO_WritePin(RS485_DE_PORT, RS485_DE_PIN, GPIO_PIN_RESET)
 
 /* ── configuration ───────────────────────────────────────────────────────── */
-#define MB_SLAVE_ADDR       0x01u
 #define MB_RX_BUF_SIZE      256u
 #define MB_TX_BUF_SIZE      256u
 #define MB_NUM_COILS        8u      /* REL0 .. REL7					         */
