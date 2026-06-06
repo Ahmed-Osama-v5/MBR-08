@@ -20,10 +20,11 @@
  *   timer fires  → Modbus_TimerCallback()  → process frame → send response
  */
 
-#include "modbus_slave.h"
-#include "modbus_timer.h"
 #include <string.h>
 #include <stdbool.h>
+#include "modbus_slave.h"
+#include "modbus_timer.h"
+#include "i2c_eeprom.h"
 
 /* ── Coils status ───────────────────────────────────────────────────────── */
 Coil_Status_t str_CoilStates;
@@ -297,6 +298,21 @@ static Reg_t* pFindReg(uint16_t u16Addr)
 		return NULL;
 }
 
+#if 0
+static uint16_t u16GetRegEE_Addr(const Reg_t* pReg)
+{
+	uint16_t u16RetVal = 0x00FF;
+
+	if(pReg == &regUART_Param)
+		u16RetVal = cu16UART_PARAM_EE_ADD;
+
+	if(pReg == &regDevAdd)
+		u16RetVal = cu16DEVICE_ADDRESS_EE_ADD;
+
+	return u16RetVal;
+}
+#endif
+
 /* ── FC 0x01 — Read Coils ───────────────────────────────────────────────── */
 static void fc01_readCoils(void)
 {
@@ -495,6 +511,41 @@ static void fc06_writeSingleReg(void)
 	if(pTmpReg != NULL)
 	{
 		pTmpReg->u16Data = value;
+
+		/* store data to EEPROM */
+		uint8_t au8Tmp[2];
+		if(pTmpReg == &regUART_Param)
+		{
+			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+			if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+			{
+				/* EEPROM write success */
+			}
+			else
+			{
+				/* TODO: handle this error */
+			}
+		}
+		else if(pTmpReg == &regDevAdd)
+		{
+			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+			if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+			{
+				/* EEPROM write success */
+			}
+			else
+			{
+				/* TODO: handle this error */
+			}
+		}
+		else
+		{
+			/* Ignore */
+		}
 	}
 
     if((addr >= cu16RELAY_CON_CH_0_ADD) || (addr <= cu16RELAY_CON_CH_7_ADD))
@@ -536,6 +587,41 @@ static void fc10_writeMultipleRegs(void)
         if(pTmpReg != NULL)
         {
         	pTmpReg->u16Data = val;
+
+    		/* store data to EEPROM */
+    		uint8_t au8Tmp[2];
+    		if(pTmpReg == &regUART_Param)
+    		{
+    			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+    			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+    			if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+    			{
+    				/* EEPROM write success */
+    			}
+    			else
+    			{
+    				/* TODO: handle this error */
+    			}
+    		}
+    		else if(pTmpReg == &regDevAdd)
+    		{
+    			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+    			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+    			if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+    			{
+    				/* EEPROM write success */
+    			}
+    			else
+    			{
+    				/* TODO: handle this error */
+    			}
+    		}
+    		else
+    		{
+    			/* Ignore */
+    		}
         }
 
         if((startAddr + i >= cu16RELAY_CON_CH_0_ADD) || (startAddr + i <= cu16RELAY_CON_CH_7_ADD))
@@ -595,6 +681,11 @@ static void processFrame(void)
  */
 void Modbus_Init(void)
 {
+	/* Init EEPROM */
+	EEPROM_vidInit();
+
+	/* ************************************************************** */
+
 	/* Init holding registers */
 	/* Relay channels */
 	regRelayCon0.u16Add = cu16RELAY_CON_CH_0_ADD;
@@ -683,13 +774,25 @@ void Modbus_Init(void)
 	regsRelDelOff.pRegs[7] = &regRelayDelOff7;
 
 
+	uint8_t au8Tmp[2];
 	/* UART parameters */
 	regUART_Param.u16Add = cu16UART_PARAM_ADD;
-	/* TODO: create default value */
+
+	/* Read UART parameters from EEPROM */
+	if(EEPROM_enuRead(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+	{
+		regUART_Param.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
+	}
 
 	/* Device address */
 	regDevAdd.u16Add = cu16DEVICE_ADDRESS_ADD;
+	/* default address in case no eeprom  read success*/
 	regDevAdd.u16Data = 0x01;
+
+	if(EEPROM_enuRead(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+	{
+		regDevAdd.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
+	}
 
 	/* Software version */
 	regSWVer.u16Add = cu16SOFTWARE_VERSION_ADD;
@@ -726,12 +829,10 @@ void Modbus_Init(void)
 	if(u8InputVal == 0x00)
 	{
 		/* default to EEPROM address */
-		/* TODO: Get address from EEPROM and remove hard-coding */
-		u8DevAddr = 0x01;
 	}
 	else if((u8InputVal > 0x00) && (u8InputVal < 0x10))
 	{
-		u8DevAddr = u8InputVal;
+		regDevAdd.u16Data = u8InputVal;
 	}
 	else
 	{
