@@ -298,6 +298,21 @@ static Reg_t* pFindReg(uint16_t u16Addr)
 		return NULL;
 }
 
+#if 0
+static uint16_t u16GetRegEE_Addr(const Reg_t* pReg)
+{
+	uint16_t u16RetVal = 0x00FF;
+
+	if(pReg == &regUART_Param)
+		u16RetVal = cu16UART_PARAM_EE_ADD;
+
+	if(pReg == &regDevAdd)
+		u16RetVal = cu16DEVICE_ADDRESS_EE_ADD;
+
+	return u16RetVal;
+}
+#endif
+
 /* ── FC 0x01 — Read Coils ───────────────────────────────────────────────── */
 static void fc01_readCoils(void)
 {
@@ -496,6 +511,41 @@ static void fc06_writeSingleReg(void)
 	if(pTmpReg != NULL)
 	{
 		pTmpReg->u16Data = value;
+
+		/* store data to EEPROM */
+		uint8_t au8Tmp[2];
+		if(pTmpReg == &regUART_Param)
+		{
+			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+			if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+			{
+				/* EEPROM write success */
+			}
+			else
+			{
+				/* TODO: handle this error */
+			}
+		}
+		else if(pTmpReg == &regDevAdd)
+		{
+			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+			if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+			{
+				/* EEPROM write success */
+			}
+			else
+			{
+				/* TODO: handle this error */
+			}
+		}
+		else
+		{
+			/* Ignore */
+		}
 	}
 
     if((addr >= cu16RELAY_CON_CH_0_ADD) || (addr <= cu16RELAY_CON_CH_7_ADD))
@@ -537,6 +587,41 @@ static void fc10_writeMultipleRegs(void)
         if(pTmpReg != NULL)
         {
         	pTmpReg->u16Data = val;
+
+    		/* store data to EEPROM */
+    		uint8_t au8Tmp[2];
+    		if(pTmpReg == &regUART_Param)
+    		{
+    			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+    			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+    			if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+    			{
+    				/* EEPROM write success */
+    			}
+    			else
+    			{
+    				/* TODO: handle this error */
+    			}
+    		}
+    		else if(pTmpReg == &regDevAdd)
+    		{
+    			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+    			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+    			if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+    			{
+    				/* EEPROM write success */
+    			}
+    			else
+    			{
+    				/* TODO: handle this error */
+    			}
+    		}
+    		else
+    		{
+    			/* Ignore */
+    		}
         }
 
         if((startAddr + i >= cu16RELAY_CON_CH_0_ADD) || (startAddr + i <= cu16RELAY_CON_CH_7_ADD))
