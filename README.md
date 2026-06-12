@@ -263,11 +263,9 @@ Node-RED `node-red-contrib-modbus` nodes can poll coil states and write relay ou
 | Area            | Status         |
 |-----------------|----------------|
 | Firmware — Core Modbus RTU  | ✅ Complete    |
-| Firmware — EEPROM driver    | ✅ Complete    |
+| Firmware — EEPROM driver    | 🔄 In progress    |
 | Firmware — HAL abstraction macros | ✅ Complete |
 | PCB — KiCad layout (BASE_8CH) | 🔄 In progress |
-| PCB — KiVar variant management | 🔄 In progress |
-| PCB — JLCPCB assembly export  | 🔄 In progress |
 | Unit tests                    | 📋 Planned     |
 | Hardware bring-up / validation | 📋 Planned    |
 
