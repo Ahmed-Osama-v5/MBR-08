@@ -11,17 +11,15 @@
 - [Hardware](#hardware)
   - [MCU](#mcu)
   - [Peripherals](#peripherals)
-  - [PCB Variants (SKUs)](#pcb-variants-skus)
 - [Firmware Architecture](#firmware-architecture)
   - [Layer Structure](#layer-structure)
   - [Modbus RTU Implementation](#modbus-rtU-implementation)
   - [EEPROM Driver](#eeprom-driver)
 - [Modbus Register Map](#modbus-register-map)
 - [Communication Parameters](#communication-parameters)
-- [Build & Flash](#build--flash)
+- [Build](#build--flash)
   - [Prerequisites](#prerequisites)
   - [Building with STM32CubeIDE](#building-with-stm32cubeide)
-  - [Flashing](#flashing)
 - [Configuration](#configuration)
   - [Baud Rate Selection](#baud-rate-selection)
   - [Node Address](#node-address)
@@ -199,15 +197,15 @@ Baud rate is selected via GPIO input pins on boot (hardware DIP switches) and st
 
 ---
 
-## Build & Flash
+## Build
 
 ### Prerequisites
 
 | Tool                  | Version tested |
 |-----------------------|----------------|
 | STM32CubeIDE          | 2.1.1          |
-| STM32CubeMX           | 6.11+ (`.ioc` included) |
-| arm-none-eabi-gcc     | 12.3+          |
+| STM32CubeMX           | 6.17.0 (`.ioc` included) |
+| arm-none-eabi-gcc     | 10.3.1         |
 | ST-Link V2 / V3       | Any            |
 
 ### Building with STM32CubeIDE
@@ -225,19 +223,14 @@ cd MBR-08
 The `.cproject` and `.project` Eclipse CDT files are included. The build produces `MBR-08.elf` and `MBR-08.bin` under `Debug/` or `Release/`.
 
 
-# Flashing via ST-Link CLI:
-STM32_Programmer_CLI -c port=SWD -w Debug/MBR-08.bin 0x08000000 -rst
-```
-
----
 
 ## Configuration
 
 ### Baud Rate Selection
 
-Baud rate is read from dedicated GPIO input pins on startup. Pull the pins LOW/HIGH according to the baud rate index table above. The value is latched once during `Modbus_Init()` and written to EEPROM if changed.
+Baud rate is read from dedicated GPIO input pins on startup. Pull the pins LOW/HIGH according to the baud rate index table above. The value is latched once during `Modbus_Init()` and written to EEPROM if changed (requires reset to take effect).
 
----
+
 
 ## IoT Integration Example
 
@@ -263,9 +256,9 @@ Node-RED `node-red-contrib-modbus` nodes can poll coil states and write relay ou
 | Area            | Status         |
 |-----------------|----------------|
 | Firmware — Core Modbus RTU  | ✅ Complete    |
-| Firmware — EEPROM driver    | 🔄 In progress    |
+| Firmware — EEPROM driver    | ✅ Complete    |
 | Firmware — HAL abstraction macros | ✅ Complete |
-| PCB — KiCad layout (BASE_8CH) | 🔄 In progress |
+| PCB — KiCad layout (BASE_8CH) | ✅ Complete |
 | Unit tests                    | 📋 Planned     |
 | Hardware bring-up / validation | 📋 Planned    |
 
