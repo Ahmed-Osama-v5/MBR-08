@@ -43,10 +43,12 @@ extern I2C_HandleTypeDef hi2c2;
  *   24LC32:  4096 bytes, 1 block,  32-byte page  (16-bit addressing)
  * ======================================================================= */
 #define I2C_EEPROM_BASE_ADDR        (0x50u)     /**< 7-bit base: 0b1010_000x        */
-#define I2C_EEPROM_TOTAL_BYTES      (1024u)     /**< Total storage in bytes          */
+//#define I2C_EEPROM_TOTAL_BYTES      (1024u)     /**< Total storage in bytes          */
+#define I2C_EEPROM_TOTAL_BYTES      (4096)     /**< Total storage in bytes          */
 #define I2C_EEPROM_BLOCK_SIZE       (256u)      /**< Bytes per address block         */
 #define I2C_EEPROM_NUM_BLOCKS       (I2C_EEPROM_TOTAL_BYTES / I2C_EEPROM_BLOCK_SIZE)
-#define I2C_EEPROM_PAGE_SIZE        (16u)       /**< Page write buffer in bytes      */
+//#define I2C_EEPROM_PAGE_SIZE        (16u)       /**< Page write buffer in bytes      */
+#define I2C_EEPROM_PAGE_SIZE        (32u)       /**< Page write buffer in bytes      */
 
 
 /* =========================================================================

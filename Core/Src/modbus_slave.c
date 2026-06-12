@@ -139,8 +139,6 @@ Reg_t regSWVer;
 
 
 /* ── internal state ─────────────────────────────────────────────────────── */
-/* default address to 0x01 */
-static uint8_t u8DevAddr = 0x01;
 
 static uint8_t  s_rxBuf[MB_RX_BUF_SIZE];
 static uint16_t s_rxLen;
@@ -170,21 +168,19 @@ static uint16_t crc16(const uint8_t *buf, uint16_t len)
 static void sendResponse(uint16_t len)
 {
 	/* Turn TX led on */
-	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_RESET);
 
     uint16_t crc = crc16(s_txBuf, len);
     s_txBuf[len]     = (uint8_t)(crc & 0xFFu);         /* CRC low           */
     s_txBuf[len + 1u] = (uint8_t)((crc >> 8u) & 0xFFu); /* CRC high         */
     RS485_DE_HIGH();   // ← assert DE/RE before TX
-    HAL_UART_Transmit_IT(MODBUS_UART_HANDLE, s_txBuf, len + 2u);
-
-	/* Turn TX led off */
-	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_RESET);
+    //HAL_UART_Transmit_IT(MODBUS_UART_HANDLE, s_txBuf, len + 2u);
+    HAL_UART_Transmit_IT(&huart2, s_txBuf, len + 2u);
 }
 
 static void sendException(uint8_t fc, uint8_t exCode)
 {
-    s_txBuf[0] = u8DevAddr;
+    s_txBuf[0] = regDevAdd.u16Data;
     s_txBuf[1] = fc | 0x80u;
     s_txBuf[2] = exCode;
     sendResponse(3u);
@@ -334,7 +330,7 @@ static void fc01_readCoils(void)
     }
 
     uint8_t byteCount = (uint8_t)((quantity + 7u) / 8u);
-    s_txBuf[0] = u8DevAddr;
+    s_txBuf[0] = regDevAdd.u16Data;
     s_txBuf[1] = 0x01u;
     s_txBuf[2] = byteCount;
 
@@ -407,13 +403,14 @@ static void fc0F_writeMultipleCoils(void)
     {
         uint8_t byteIdx = (uint8_t)(i / 8u);
         uint8_t bitIdx  = (uint8_t)(i % 8u);
-        regsRelCon.pRegs[startAddr + i]->u16Data = (s_rxBuf[7u + byteIdx] >> bitIdx) & 0x01u;
+        regsRelCon.pRegs[startAddr + i]->u16Data =
+            ((s_rxBuf[7u + byteIdx] >> bitIdx) & 0x01u) ? cu16_RELAY_ON : cu16_RELAY_OFF;
     }
 
     // sync value with app layer
 	bNewData = true;
 
-    s_txBuf[0] = u8DevAddr;
+    s_txBuf[0] = regDevAdd.u16Data;
     s_txBuf[1] = 0x0Fu;
     s_txBuf[2] = s_rxBuf[2];
     s_txBuf[3] = s_rxBuf[3];
@@ -443,7 +440,7 @@ static void fc03_readHoldingRegs(void)
     }
 
     uint8_t byteCount = (uint8_t)(quantity * 2u);
-    s_txBuf[0] = u8DevAddr;
+    s_txBuf[0] = regDevAdd.u16Data;
     s_txBuf[1] = 0x03u;
     s_txBuf[2] = byteCount;
 
@@ -452,7 +449,7 @@ static void fc03_readHoldingRegs(void)
         s_txBuf[3u + i] = 0x00u;
 
     /* Coil states */
-	if((startAddr >= cu16RELAY_CON_CH_0_ADD) || (startAddr <= cu16RELAY_CON_CH_7_ADD))
+	if((startAddr >= cu16RELAY_CON_CH_0_ADD) && (startAddr <= cu16RELAY_CON_CH_7_ADD))
 	{
 		/* Pack coil states — LSB of first byte = coil at startAddr */
 		for (uint16_t i = 0u; i < quantity; i++)
@@ -548,7 +545,7 @@ static void fc06_writeSingleReg(void)
 		}
 	}
 
-    if((addr >= cu16RELAY_CON_CH_0_ADD) || (addr <= cu16RELAY_CON_CH_7_ADD))
+    if((addr >= cu16RELAY_CON_CH_0_ADD) && (addr <= cu16RELAY_CON_CH_7_ADD))
     {
         // sync value with app layer
     	bNewData = true;
@@ -624,14 +621,14 @@ static void fc10_writeMultipleRegs(void)
     		}
         }
 
-        if((startAddr + i >= cu16RELAY_CON_CH_0_ADD) || (startAddr + i <= cu16RELAY_CON_CH_7_ADD))
+        if((startAddr + i >= cu16RELAY_CON_CH_0_ADD) && (startAddr + i <= cu16RELAY_CON_CH_7_ADD))
 		{
 			// sync value with app layer
 			bNewData = true;
 		}
     }
 
-    s_txBuf[0] = u8DevAddr;
+    s_txBuf[0] = regDevAdd.u16Data;
     s_txBuf[1] = 0x10u;
     s_txBuf[2] = s_rxBuf[2];
     s_txBuf[3] = s_rxBuf[3];
@@ -648,7 +645,7 @@ static void processFrame(void)
         return;
 
     /* address filter */
-    if (s_rxBuf[0] != u8DevAddr)
+    if (s_rxBuf[0] != regDevAdd.u16Data)
         return;
 
     /* CRC check */
@@ -789,9 +786,9 @@ void Modbus_Init(void)
 	/* default address in case no eeprom  read success*/
 	regDevAdd.u16Data = 0x01;
 
-	if(EEPROM_enuRead(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+	//if(EEPROM_enuRead(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
 	{
-		regDevAdd.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
+		//regDevAdd.u16Data = (au8Tmp[1] << 8) | au8Tmp[0];
 	}
 
 	/* Software version */
@@ -855,7 +852,7 @@ void Modbus_Init(void)
 void Modbus_RxByteCallback(uint8_t byte)
 {
 	/* Turn RX led on */
-	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_RESET);
 
     /* restart 3.5T timer on every byte */
 	/* On every received byte — restart 3.5T window */
@@ -868,7 +865,7 @@ void Modbus_RxByteCallback(uint8_t byte)
     HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
 
 	/* Turn RX led off */
-	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -893,5 +890,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     	// Wait for shift register to fully empty
     	while (__HAL_UART_GET_FLAG(huart, UART_FLAG_TC) == RESET);
         RS485_DE_LOW();   // ← release bus after last byte is fully shifted out
+
+    	/* Turn TX led off */
+    	HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_SET);
     }
 }

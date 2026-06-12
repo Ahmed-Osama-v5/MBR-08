@@ -120,6 +120,12 @@ int main(void)
   Scheduler_Init();
   Modbus_Init();
 
+  /* Turn TX led off */
+  HAL_GPIO_WritePin(TX_LED_GPIO_Port, TX_LED_Pin, GPIO_PIN_SET);
+
+  /* Turn RX led off */
+  HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_SET);
+
   /* Note: Modbus has no tasks in the scheduler because it's all run through interrupts */
   Scheduler_AddTask(Task_RelayUpdate,     5U,   50U);  /* every 5ms,  stuck if >50ms  */
   Scheduler_AddTask(Task_ActLED,  500U,    0U);  /* every 500ms, not wdog-guarded */
@@ -509,7 +515,7 @@ static void Task_ActLED(void)
 {
     HAL_GPIO_TogglePin(ACT_LED_GPIO_Port, ACT_LED_Pin);
 }
-#if 0
+
 /**
  * @brief UART RX complete — fires for every received byte.
  */
@@ -531,10 +537,10 @@ void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim)
 {
     if (hlptim->Instance == LPTIM1)
     {
-        Modbus_TimerCallback();
+    	ModbusTimer_FrameDoneCallback();
     }
 }
-#endif
+
 /* USER CODE END 4 */
 
 /**
