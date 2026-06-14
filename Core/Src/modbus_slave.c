@@ -20,11 +20,16 @@
  *   timer fires  → Modbus_TimerCallback()  → process frame → send response
  */
 
+#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include "modbus_slave.h"
-#include "modbus_timer.h"
 #include "i2c_eeprom.h"
+
+#define _DEBUG
+
+
+extern UART_HandleTypeDef huart1;
 
 /* ── Coils status ───────────────────────────────────────────────────────── */
 Coil_Status_t str_CoilStates;
@@ -144,6 +149,12 @@ static uint8_t  s_rxBuf[MB_RX_BUF_SIZE];
 static uint16_t s_rxLen;
        uint8_t  g_lastRxByte;   /* HAL writes here; exposed to main.c       */
 static uint8_t  s_txBuf[MB_TX_BUF_SIZE];
+
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
 
 
 /* ── CRC-16 (Modbus polynomial 0xA001) ─────────────────────────────────── */
@@ -427,6 +438,9 @@ static void fc03_readHoldingRegs(void)
 
     if (quantity == 0u || quantity > MB_NUM_REGS)
     {
+#ifdef _DEBUG
+    	printf("FC03 err, quantity: %d\r\n", quantity);
+#endif
         sendException(0x03u, MB_EX_ILLEGAL_DATA_VALUE);
         return;
     }
@@ -434,6 +448,9 @@ static void fc03_readHoldingRegs(void)
     {
     	if(! bIsAddValid(startAddr + i))
     	{
+#ifdef _DEBUG
+        	printf("FC03 err, add err: %d\r\n", startAddr);
+#endif
     		sendException(0x01u, MB_EX_ILLEGAL_DATA_ADDRESS);
     		return;
     	}
@@ -451,6 +468,9 @@ static void fc03_readHoldingRegs(void)
     /* Coil states */
 	if((startAddr >= cu16RELAY_CON_CH_0_ADD) && (startAddr <= cu16RELAY_CON_CH_7_ADD))
 	{
+#ifdef _DEBUG
+    	printf("FC03, reading coil: %d state\r\n", startAddr);
+#endif
 		/* Pack coil states — LSB of first byte = coil at startAddr */
 		for (uint16_t i = 0u; i < quantity; i++)
 		{
@@ -462,6 +482,9 @@ static void fc03_readHoldingRegs(void)
 	/* UART parameters */
 	else if(startAddr == cu16UART_PARAM_ADD)
 	{
+#ifdef _DEBUG
+    	printf("FC03, reading uart: %d\r\n", startAddr);
+#endif
 		// Low
 		s_txBuf[3u] = (uint8_t)regUART_Param.u16Data;
 		// High
@@ -470,6 +493,9 @@ static void fc03_readHoldingRegs(void)
 	/* Device address */
 	else if(startAddr == cu16DEVICE_ADDRESS_ADD)
 	{
+#ifdef _DEBUG
+    	printf("FC03, reading dev addr: %d\r\n", startAddr);
+#endif
 		// Low
 		s_txBuf[3u] = (uint8_t)regDevAdd.u16Data;
 		// High
@@ -479,6 +505,9 @@ static void fc03_readHoldingRegs(void)
 	/* SW version */
 	else if(startAddr == cu16SOFTWARE_VERSION_ADD)
 	{
+#ifdef _DEBUG
+    	printf("FC03, reading sw ver: %d\r\n", startAddr);
+#endif
 		// Low
 		s_txBuf[3u] = (uint8_t)regSWVer.u16Data;
 		// High
@@ -509,44 +538,56 @@ static void fc06_writeSingleReg(void)
 	{
 		pTmpReg->u16Data = value;
 
-		/* store data to EEPROM */
-		uint8_t au8Tmp[2];
-		if(pTmpReg == &regUART_Param)
+		/* store data to EEPROM only if addr other than control registers */
+		if(addr > cu16RELAY_CON_ALL_ADD)
 		{
-			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
-			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
-
-			if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+			uint8_t au8Tmp[2];
+			if(pTmpReg == &regUART_Param)
 			{
-				/* EEPROM write success */
+				au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+				au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+				if(EEPROM_enuWrite(cu16UART_PARAM_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+				{
+					/* EEPROM write success */
+				}
+				else
+				{
+					/* TODO: handle this error */
+				}
+			}
+			else if(pTmpReg == &regDevAdd)
+			{
+				au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
+				au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
+
+				if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
+				{
+					/* EEPROM write success */
+				}
+				else
+				{
+					/* TODO: handle this error */
+				}
 			}
 			else
 			{
-				/* TODO: handle this error */
+				/* Ignore */
 			}
-		}
-		else if(pTmpReg == &regDevAdd)
-		{
-			au8Tmp[0] = (uint8_t) pTmpReg->u16Data;
-			au8Tmp[1] = (uint8_t) (pTmpReg->u16Data >> 8);
-
-			if(EEPROM_enuWrite(cu16DEVICE_ADDRESS_EE_ADD, au8Tmp, 2) == EEPROM_OK)
-			{
-				/* EEPROM write success */
-			}
-			else
-			{
-				/* TODO: handle this error */
-			}
-		}
-		else
-		{
-			/* Ignore */
 		}
 	}
 
     if((addr >= cu16RELAY_CON_CH_0_ADD) && (addr <= cu16RELAY_CON_CH_7_ADD))
     {
+        // sync value with app layer
+    	bNewData = true;
+    }
+    if(addr == cu16RELAY_CON_ALL_ADD)
+    {
+    	/* control all relays */
+    	for (uint8_t ch = 0U; ch < MB_NUM_COILS; ch++)
+    		regsRelCon.pRegs[ch]->u16Data = pTmpReg->u16Data;
+
         // sync value with app layer
     	bNewData = true;
     }
@@ -640,31 +681,89 @@ static void fc10_writeMultipleRegs(void)
 /* ── frame processor ────────────────────────────────────────────────────── */
 static void processFrame(void)
 {
+#ifdef _DEBUG
+	printf("Processing frame\r\n");
+#endif
+
+#ifdef _DEBUG
+	printf("Frame data: 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", s_rxBuf[0], s_rxBuf[1], s_rxBuf[2], s_rxBuf[3], s_rxBuf[4], s_rxBuf[5], s_rxBuf[6], s_rxBuf[7]);
+#endif
+
     /* minimum frame: addr(1) + fc(1) + data(min 4) + crc(2) = 8 bytes      */
     if (s_rxLen < 8u)
+    {
+#ifdef _DEBUG
+    	printf("Processing frame: Len err, len: %d\r\n", s_rxLen);
+#endif
         return;
+    }
 
     /* address filter */
     if (s_rxBuf[0] != regDevAdd.u16Data)
+    {
+#ifdef _DEBUG
+    	printf("Processing frame: Add err, rec add: %d, dev add: %d\r\n", s_rxBuf[0], regDevAdd.u16Data);
+#endif
         return;
+    }
 
     /* CRC check */
     uint16_t rxCrc   = ((uint16_t)s_rxBuf[s_rxLen - 1u] << 8u)
                       | s_rxBuf[s_rxLen - 2u];
     uint16_t calcCrc = crc16(s_rxBuf, s_rxLen - 2u);
     if (rxCrc != calcCrc)
+    {
+#ifdef _DEBUG
+    	printf("Processing frame: crc err\r\n");
+#endif
         return;
+    }
 
     uint8_t fc = s_rxBuf[1];
     switch (fc)
     {
-        case 0x01u: fc01_readCoils();          break;
-        case 0x05u: fc05_writeSingleCoil();    break;
-        case 0x0Fu: fc0F_writeMultipleCoils(); break;
-        case 0x03u: fc03_readHoldingRegs();    break;
-        case 0x06u: fc06_writeSingleReg();     break;
-        case 0x10u: fc10_writeMultipleRegs();  break;
-        default:    sendException(fc, MB_EX_ILLEGAL_FUNCTION); break;
+        case 0x01u:
+#ifdef _DEBUG
+        	printf("Processing frame, FC01\r\n");
+#endif
+        	fc01_readCoils();
+        	break;
+        case 0x05u:
+#ifdef _DEBUG
+        	printf("Processing frame, FC05\r\n");
+#endif
+        	fc05_writeSingleCoil();
+        	break;
+        case 0x0Fu:
+#ifdef _DEBUG
+        	printf("Processing frame, FC0F\r\n");
+#endif
+        	fc0F_writeMultipleCoils();
+        	break;
+        case 0x03u:
+#ifdef _DEBUG
+        	printf("Processing frame, FC03\r\n");
+#endif
+        	fc03_readHoldingRegs();
+        	break;
+        case 0x06u:
+#ifdef _DEBUG
+        	printf("Processing frame, FC06\r\n");
+#endif
+        	fc06_writeSingleReg();
+        	break;
+        case 0x10u:
+#ifdef _DEBUG
+        	printf("Processing frame, FC10\r\n");
+#endif
+        	fc10_writeMultipleRegs();
+        	break;
+        default:
+#ifdef _DEBUG
+        	printf("Processing frame, exc\r\n");
+#endif
+        	sendException(fc, MB_EX_ILLEGAL_FUNCTION);
+        	break;
     }
 }
 
@@ -802,6 +901,7 @@ void Modbus_Init(void)
 	uint8_t u8InputVal = 0x00;
 
 	/* DIP switch pin becomes 0 when switched to "ON" position */
+	/* logic here is reversed to make it normal to user */
 	if(HAL_GPIO_ReadPin(ADD_0_GPIO_Port, ADD_0_Pin) == GPIO_PIN_SET)
 		u8InputVal &= ~(1 << 0);
 	else
@@ -822,6 +922,8 @@ void Modbus_Init(void)
 	else
 		u8InputVal |= (1 << 3);
 
+	u8InputVal &= 0x0F;
+
 	/* Parse value */
 	if(u8InputVal == 0x00)
 	{
@@ -836,6 +938,62 @@ void Modbus_Init(void)
 		/* Unsupported address setting, ignore */
 	}
 
+#ifdef _DEBUG
+	printf("Input value= %d\r\n", u8InputVal);
+	printf("Dev Add= %d\r\n", regDevAdd.u16Data);
+#endif
+
+/* ************************************************************** */
+	/* Read baud rate setting */
+	uint32_t u32Baud = 9600; // default value
+
+	/* Read baud GPIO pins */
+	uint8_t u8BaudVal = 0x00;
+
+	/* DIP switch pin becomes 0 when switched to "ON" position */
+	/* logic here is reversed to make it normal to user */
+	if(HAL_GPIO_ReadPin(BAUD_0_GPIO_Port, BAUD_0_Pin) == GPIO_PIN_SET)
+		u8BaudVal &= ~(1 << 0);
+	else
+		u8BaudVal |= (1 << 0);
+
+	if(HAL_GPIO_ReadPin(BAUD_1_GPIO_Port, BAUD_1_Pin) == GPIO_PIN_SET)
+		u8BaudVal &= ~(1 << 1);
+	else
+		u8BaudVal |= (1 << 1);
+
+	switch(u8BaudVal)
+	{
+	case 0x00:
+		/* EEPROM */
+		break;
+	case 0x01:
+		u32Baud = 19200;
+		break;
+	case 0x02:
+		u32Baud = 57600;
+		break;
+	case 0x03:
+		u32Baud = 115200;
+		break;
+	default:
+		/* EEPROM */
+		break;
+	}
+
+	/* Set uart baud rate */
+	MODBUS_UART_HANDLE->Init.BaudRate = u32Baud;
+	HAL_UART_Init(MODBUS_UART_HANDLE);
+
+#ifdef _DEBUG
+	printf("baud setting= %d\r\n", u8BaudVal);
+	printf("baud rate= %lu\r\n", u32Baud);
+#endif
+
+/* ************************************************************** */
+
+	ModbusTimer_vidInit(u32Baud);
+
 
 /* ************************************************************** */
 
@@ -844,6 +1002,113 @@ void Modbus_Init(void)
     /* enable UART receive interrupt — 1 byte at a time */
     HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3.5T Inter-Frame Timer — TIM2
+   ══════════════════════════════════════════════════════════════════════════
+ *
+ * TIM2 is a 16-bit general-purpose timer on APB1.
+ *
+ * Modbus RTU 3.5T inter-frame gap:
+ *   baud <= 19200 → T35_us = (3.5 * 11 * 1e6) / baud
+ *   baud >  19200 → T35_us = 1750 (fixed, per Modbus spec §2.5.1)
+ *
+ * Prescaler chosen so 1 tick = 1 us:
+ *   PSC = (PCLK1_Hz / 1000000) - 1
+ *   ARR = T35_us - 1   (timer fires after ARR+1 ticks)
+ */
+
+static uint32_t s_u32ArrValue = 0u;   /* cached ARR (3.5T in timer ticks) */
+
+/**
+ * @brief  Compute 3.5T inter-frame gap in microseconds for a given baud rate.
+ */
+static uint32_t u32CalcT35Us(uint32_t u32Baud)
+{
+    if (u32Baud <= 19200u)
+    {
+        /* 3.5 * 11 bits * 1e6 us/s = 38500000 */
+        return 38500000u / u32Baud;
+    }
+    return 1750u;
+}
+
+/**
+ * @brief  Initialise TIM2 for the 3.5T one-shot inter-frame timer.
+ * @param  u32Baud  UART baud rate (Hz) used to compute the 3.5T window.
+ *
+ * Call once after MX_TIM2_Init() and before enabling UART RX interrupts.
+ */
+void ModbusTimer_vidInit(uint32_t u32Baud)
+{
+    uint32_t u32T35Us;
+    uint32_t u32PclkHz;
+    uint32_t u32Psc;
+
+#ifdef _DEBUG
+	printf("1. prescaler: %lu\r\n", htim2.Instance->PSC);
+#endif
+
+    u32T35Us  = u32CalcT35Us(u32Baud);
+    u32PclkHz = HAL_RCC_GetPCLK1Freq();
+
+#ifdef _DEBUG
+	printf("timer 3.5T: %lu\r\n", u32T35Us);
+#endif
+
+    /* PSC chosen so each tick = 1 us → ARR ticks == microseconds */
+    u32Psc = (u32PclkHz / 1000000u) - 1u;
+
+    __HAL_TIM_SET_PRESCALER(&htim2, u32Psc);
+
+    s_u32ArrValue = u32T35Us - 1u;   /* timer fires after ARR+1 ticks */
+
+    if (s_u32ArrValue > 0xFFFFu)
+        s_u32ArrValue = 0xFFFFu;     /* clamp to 16-bit TIM2 range */
+
+    __HAL_TIM_SET_AUTORELOAD(&htim2, s_u32ArrValue);
+    __HAL_TIM_SET_COUNTER(&htim2, 0u);
+
+    /* Force PSC into the active shadow register immediately,
+     * instead of waiting for the next natural update event. */
+    HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE);
+
+    /* The UG event also sets UIF — clear it so we don't get
+     * a spurious interrupt the moment Start_IT is called. */
+    __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
+
+#ifdef _DEBUG
+	printf("2. prescaler: %lu\r\n", htim2.Instance->PSC);
+#endif
+
+    /* Do NOT start yet — wait for first RX byte */
+}
+
+/**
+ * @brief  Restart the 3.5T one-shot window.
+ *         Call on every received byte (extends the silence window).
+ */
+void ModbusTimer_Restart(void)
+{
+    __HAL_TIM_SET_COUNTER(&htim2, 0u);
+    __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_UPDATE);
+    HAL_TIM_Base_Start_IT(&htim2);
+}
+
+/**
+ * @brief  Stop the 3.5T timer (e.g. frame complete, or TX turnaround).
+ */
+void ModbusTimer_Stop(void)
+{
+    HAL_TIM_Base_Stop_IT(&htim2);
+#ifdef _DEBUG
+	printf("timer cnt: %lu\r\n", __HAL_TIM_GET_COUNTER(&htim2));
+#endif
+    __HAL_TIM_SET_COUNTER(&htim2, 0u);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════ */
 
 /**
  * @brief Feed a received byte into the Modbus state machine.
@@ -863,9 +1128,6 @@ void Modbus_RxByteCallback(uint8_t byte)
 
     /* re-arm for next byte */
     HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
-
-	/* Turn RX led off */
-	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_SET);
 }
 
 /**
@@ -876,11 +1138,19 @@ void ModbusTimer_FrameDoneCallback(void)
 {
 	/* Explicit stop (e.g. during TX turnaround) */
 	ModbusTimer_Stop();
+
+#ifdef _DEBUG
+	printf("Frame done\r\n");
+#endif
+
     processFrame();
     s_rxLen = 0u;
 
     /* re-arm UART from start of buffer */
     HAL_UART_Receive_IT(MODBUS_UART_HANDLE, &g_lastRxByte, 1u);
+
+	/* Turn RX led off */
+	HAL_GPIO_WritePin(RX_LED_GPIO_Port, RX_LED_Pin, GPIO_PIN_SET);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)

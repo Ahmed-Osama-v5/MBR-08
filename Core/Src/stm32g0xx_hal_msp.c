@@ -71,6 +71,9 @@ void HAL_MspInit(void)
 
   /* System interrupt init*/
 
+  HAL_SYSCFG_EnableRemap(SYSCFG_REMAP_PA11);
+  HAL_SYSCFG_EnableRemap(SYSCFG_REMAP_PA12);
+
   /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
   */
   HAL_SYSCFG_StrobeDBattpinsConfig(SYSCFG_CFGR1_UCPD1_STROBE | SYSCFG_CFGR1_UCPD2_STROBE);
@@ -159,100 +162,52 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 }
 
 /**
-  * @brief LPTIM MSP Initialization
+  * @brief TIM_Base MSP Initialization
   * This function configures the hardware resources used in this example
-  * @param hlptim: LPTIM handle pointer
+  * @param htim_base: TIM_Base handle pointer
   * @retval None
   */
-void HAL_LPTIM_MspInit(LPTIM_HandleTypeDef* hlptim)
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-  if(hlptim->Instance==LPTIM1)
+  if(htim_base->Instance==TIM2)
   {
-    /* USER CODE BEGIN LPTIM1_MspInit 0 */
+    /* USER CODE BEGIN TIM2_MspInit 0 */
 
-    /* USER CODE END LPTIM1_MspInit 0 */
-
-  /** Initializes the peripherals clocks
-  */
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPTIM1;
-    PeriphClkInit.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_PCLK1;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
+    /* USER CODE END TIM2_MspInit 0 */
     /* Peripheral clock enable */
-    __HAL_RCC_LPTIM1_CLK_ENABLE();
-    /* LPTIM1 interrupt Init */
-    HAL_NVIC_SetPriority(TIM6_DAC_LPTIM1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM6_DAC_LPTIM1_IRQn);
-    /* USER CODE BEGIN LPTIM1_MspInit 1 */
+    __HAL_RCC_TIM2_CLK_ENABLE();
+    /* TIM2 interrupt Init */
+    HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    /* USER CODE BEGIN TIM2_MspInit 1 */
 
-    /* USER CODE END LPTIM1_MspInit 1 */
-  }
-  else if(hlptim->Instance==LPTIM2)
-  {
-    /* USER CODE BEGIN LPTIM2_MspInit 0 */
+    /* USER CODE END TIM2_MspInit 1 */
 
-    /* USER CODE END LPTIM2_MspInit 0 */
-
-  /** Initializes the peripherals clocks
-  */
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPTIM2;
-    PeriphClkInit.Lptim2ClockSelection = RCC_LPTIM2CLKSOURCE_PCLK1;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    /* Peripheral clock enable */
-    __HAL_RCC_LPTIM2_CLK_ENABLE();
-    /* LPTIM2 interrupt Init */
-    HAL_NVIC_SetPriority(TIM7_LPTIM2_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM7_LPTIM2_IRQn);
-    /* USER CODE BEGIN LPTIM2_MspInit 1 */
-
-    /* USER CODE END LPTIM2_MspInit 1 */
   }
 
 }
 
 /**
-  * @brief LPTIM MSP De-Initialization
+  * @brief TIM_Base MSP De-Initialization
   * This function freeze the hardware resources used in this example
-  * @param hlptim: LPTIM handle pointer
+  * @param htim_base: TIM_Base handle pointer
   * @retval None
   */
-void HAL_LPTIM_MspDeInit(LPTIM_HandleTypeDef* hlptim)
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 {
-  if(hlptim->Instance==LPTIM1)
+  if(htim_base->Instance==TIM2)
   {
-    /* USER CODE BEGIN LPTIM1_MspDeInit 0 */
+    /* USER CODE BEGIN TIM2_MspDeInit 0 */
 
-    /* USER CODE END LPTIM1_MspDeInit 0 */
+    /* USER CODE END TIM2_MspDeInit 0 */
     /* Peripheral clock disable */
-    __HAL_RCC_LPTIM1_CLK_DISABLE();
+    __HAL_RCC_TIM2_CLK_DISABLE();
 
-    /* LPTIM1 interrupt DeInit */
-    HAL_NVIC_DisableIRQ(TIM6_DAC_LPTIM1_IRQn);
-    /* USER CODE BEGIN LPTIM1_MspDeInit 1 */
+    /* TIM2 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM2_IRQn);
+    /* USER CODE BEGIN TIM2_MspDeInit 1 */
 
-    /* USER CODE END LPTIM1_MspDeInit 1 */
-  }
-  else if(hlptim->Instance==LPTIM2)
-  {
-    /* USER CODE BEGIN LPTIM2_MspDeInit 0 */
-
-    /* USER CODE END LPTIM2_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_LPTIM2_CLK_DISABLE();
-
-    /* LPTIM2 interrupt DeInit */
-    HAL_NVIC_DisableIRQ(TIM7_LPTIM2_IRQn);
-    /* USER CODE BEGIN LPTIM2_MspDeInit 1 */
-
-    /* USER CODE END LPTIM2_MspDeInit 1 */
+    /* USER CODE END TIM2_MspDeInit 1 */
   }
 
 }
@@ -287,8 +242,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**USART1 GPIO Configuration
-    PA9     ------> USART1_TX
-    PA10     ------> USART1_RX
+    PA9 [PA11]     ------> USART1_TX
+    PA10 [PA12]     ------> USART1_RX
     */
     GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -297,9 +252,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = GPIO_AF1_USART1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USART1_IRQn);
     /* USER CODE BEGIN USART1_MspInit 1 */
 
     /* USER CODE END USART1_MspInit 1 */
@@ -361,13 +313,11 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     __HAL_RCC_USART1_CLK_DISABLE();
 
     /**USART1 GPIO Configuration
-    PA9     ------> USART1_TX
-    PA10     ------> USART1_RX
+    PA9 [PA11]     ------> USART1_TX
+    PA10 [PA12]     ------> USART1_RX
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9|GPIO_PIN_10);
 
-    /* USART1 interrupt DeInit */
-    HAL_NVIC_DisableIRQ(USART1_IRQn);
     /* USER CODE BEGIN USART1_MspDeInit 1 */
 
     /* USER CODE END USART1_MspDeInit 1 */
