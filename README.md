@@ -44,7 +44,7 @@ The firmware is written in bare-metal C, targeting the STM32G0B1CBTx, with a cle
 
 ## Hardware
 
-![MBR-08]([images/MBR-08_R1_0.png](https://github.com/Ahmed-Osama-v5/MBR-08/blob/master/images/MBR-08_R1_0.jpg))
+![MBR-08](https://github.com/Ahmed-Osama-v5/MBR-08/blob/master/images/MBR-08_R1_0.jpg)
 
 ### MCU
 
