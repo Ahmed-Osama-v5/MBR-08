@@ -44,6 +44,8 @@ The firmware is written in bare-metal C, targeting the STM32G0B1CBTx, with a cle
 
 ## Hardware
 
+![Alt text for the image](images/MBR-08_R1_0.png)
+
 ### MCU
 
 | Parameter       | Value                              |
@@ -260,7 +262,7 @@ Node-RED `node-red-contrib-modbus` nodes can poll coil states and write relay ou
 | Firmware — HAL abstraction macros | ✅ Complete |
 | PCB — KiCad layout (BASE_8CH) | ✅ Complete |
 | Unit tests                    | 📋 Planned     |
-| Hardware bring-up / validation | 📋 Planned    |
+| Hardware bring-up / validation | ✅ Complete    |
 
 ---
 
