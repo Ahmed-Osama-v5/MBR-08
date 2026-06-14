@@ -38,6 +38,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 
 typedef UART_HandleTypeDef	Modbus_UART_t;
+typedef TIM_HandleTypeDef	Modbus_TIMER_t;
 
 /* USER CODE END ET */
 
@@ -49,6 +50,7 @@ typedef UART_HandleTypeDef	Modbus_UART_t;
 #define cu16SOFTWARE_VERSION	((uint16_t) 100u)
 
 #define MODBUS_UART_CH	huart2
+#define MODBUS_TIMER_CH	htim2
 
 /* USER CODE END EC */
 

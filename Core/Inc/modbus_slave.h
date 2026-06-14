@@ -18,8 +18,10 @@
 
 /* ── public handles (set before calling Modbus_Init) ─────────────────────── */
 extern Modbus_UART_t MODBUS_UART_CH;
-
 #define MODBUS_UART_HANDLE	(&MODBUS_UART_CH)
+
+extern Modbus_TIMER_t MODBUS_TIMER_CH;
+#define MODBUS_TIMER_HANDLE	(&MODBUS_TIMER_CH)
 
 /* RS-485 direction pin — PA1 */
 #define RS485_DE_PORT   RX_EN_GPIO_Port
@@ -176,6 +178,25 @@ typedef struct
 extern uint8_t g_lastRxByte;
 
 void Modbus_Init(void);
+
+/**
+ * @brief  Initialise TIM2 for the 3.5T one-shot inter-frame timer.
+ * @param  u32Baud  UART baud rate (Hz) used to compute the 3.5T window.
+ *
+ * Call once after MX_TIM2_Init() and before enabling UART RX interrupts.
+ */
+void ModbusTimer_vidInit(uint32_t u32Baud);
+
+/**
+ * @brief  Restart the 3.5T one-shot window.
+ *         Call on every received byte (extends the silence window).
+ */
+void ModbusTimer_Restart(void);
+
+/**
+ * @brief  Stop the 3.5T timer (e.g. frame complete, or TX turnaround).
+ */
+void ModbusTimer_Stop(void);
 
 /**
  * @brief Call from uart IRQ handler  (HAL_UART_RxCpltCallback or raw IRQ).
